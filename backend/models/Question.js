@@ -1,15 +1,6 @@
-const mongoose = require('mongoose');
-
-const answerSchema = new mongoose.Schema({
-  ai_name: String,
-  answer_text: String,
-  response_time_ms: Number,
+const mongoose = require("mongoose");
+const QuestionSchema = new mongoose.Schema({
+  text: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
 });
-
-const questionSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  question: String,
-  answers: [answerSchema],
-}, { timestamps: true });
-
-module.exports = mongoose.model('Question', questionSchema);
+module.exports = mongoose.model("Question", QuestionSchema);
