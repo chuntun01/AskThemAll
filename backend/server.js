@@ -1,6 +1,6 @@
 const express = require("express");
 const connectDB = require("./config/db");
-const User = require("./models/User");
+const User = require("./models/AIModel");
 const Question = require("./models/Question"); // Import Question model
 require("dotenv").config();
 
