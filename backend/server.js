@@ -20,6 +20,9 @@ mongoose
 const apiRoutes = require("./routes/api");
 app.use("/api", apiRoutes);
 
+app.get('/', (req, res) => {
+  res.send('<h1>Backend ok rồi đấy</h1><p>mở postman lên mà test!.</p>');
+});
 // Khởi động server
 app.listen(PORT, () => {
   console.log(`Backend server is running on http://localhost:${PORT}`);
