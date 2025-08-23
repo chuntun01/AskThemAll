@@ -19,7 +19,7 @@ const ResponseComponent = ({ responses }: ResponseProps) => {
             // w-full trên mobile để mỗi ô chiếm trọn 1 dòng
             <div
               key={index}
-              className="flex-1 rounded-xl border border-gray-700 bg-gray-800/50 p-4 transition-colors hover:bg-gray-800/80 w-full md:w-[calc(33.3333%-1rem)]"
+              className="flex-1 rounded-xl border border-gray-700 bg-gray-800/50 p-4 transition-colors hover:bg-gray-800/80 w-full max-w-8xl md:w-[calc(33.3333%-1rem)]"
             >
               <h4 className="mb-2 font-semibold text-gray-100">{title}</h4>
               <p className="text-sm leading-relaxed text-gray-200 break-words">
