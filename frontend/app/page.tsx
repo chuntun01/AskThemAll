@@ -8,7 +8,7 @@ import NavbarMenu from "./component/NavMenu";
 export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Dữ liệu lịch sử giả lập để truyền vào NavbarMenu
+  // Dữ liệu lịch sử giả lập
   const mockHistoryData = [
     { name: "Sản phẩm A", href: "/san-pham-a" },
     { name: "Tin tức mới nhất", href: "/tin-tuc" },
@@ -17,18 +17,27 @@ export default function Home() {
   ];
 
   return (
-    <main className="flex flex-col min-h-screen">
-      {/* Navbar + Menu */}
+    // Thêm màu nền để dễ nhìn hơn
+    <main className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
       <NavbarMenu
         isMenuOpen={isMenuOpen}
         onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
         onClose={() => setIsMenuOpen(false)}
-        // THAY ĐỔI: Truyền prop historyItems vào đây
         historyItems={mockHistoryData}
       />
 
-      {/* Nội dung chính — tránh bị đè bởi menu */}
-      <div className="flex-1 mx-auto w-full max-w-4xl flex flex-col gap-8 p-4 pt-8 md:p-8 mt-4">
+      {/* Lớp phủ để đóng menu khi click ra ngoài */}
+      {isMenuOpen && (
+        <div
+          onClick={() => setIsMenuOpen(false)}
+          className="fixed inset-0 z-30"
+        ></div>
+      )}
+
+      {/* Nội dung chính */}
+      <div
+        className={`flex-1 mx-auto w-full max-w-7xl flex flex-col gap-8 p-4 pt-20 md:p-8 md:pt-24 transition-all duration-300 ease-in-out `}
+      >
         <ResponseComponent responses={[]} />
         <Input />
       </div>
