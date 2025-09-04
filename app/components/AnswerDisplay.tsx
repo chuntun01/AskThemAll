@@ -1,5 +1,4 @@
-// component/AnswerDisplay.tsx
-import AnswerCard from "./AnswerCard";
+"use client";
 
 interface AIModel {
   _id: string;
@@ -7,83 +6,77 @@ interface AIModel {
   displayName: string;
 }
 
-interface Answer {
-  _id: string;
+interface Message {
+  id: string;
+  role: "user" | "assistant";
   content: string;
-  // Sửa lại kiểu dữ liệu của authorModel để khớp với dữ liệu thực tế
-  authorModel: string; // Đây là một chuỗi ID
+  modelId?: string; // assistant dùng để tìm displayName
 }
 
 interface AnswerDisplayProps {
   isLoading: boolean;
-  answers: Answer[];
+  messages: Message[];
   selectedModels: AIModel[];
   error: string | null;
-  submittedQuestion: string;
 }
 
 export default function AnswerDisplay({
   isLoading,
-  answers = [],
+  messages = [],
   selectedModels = [],
   error,
 }: AnswerDisplayProps) {
-  // Phần logic và các câu lệnh if... ở trên không thay đổi
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[120px]">
-        <div className="animate-pulse text-blue-400 text-lg">
-          Đang xử lý câu trả lời...
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center min-h-[120px]">
-        <div className="text-red-500 text-center">{error}</div>
-      </div>
-    );
-  }
-
-  if (!Array.isArray(selectedModels) || selectedModels.length === 0) {
-    return (
-      <div className="flex justify-center items-center min-h-[280px]">
-        <div className="text-gray-800 text-center">
-          Chào mừng bạn đến với Ask Them All!
-          <br />
-          Vui lòng chọn một AI model để bắt đầu.
-        </div>
-      </div>
-    );
-  }
-
-  const safeAnswers = Array.isArray(answers) ? answers : [];
-
-  const getAnswerForModel = (model: AIModel) => {
-    return safeAnswers.find((ans) => ans.authorModel === model._id);
-  };
   return (
-    // BƯỚC 2: Thay đổi className để sử dụng Flexbox theo chiều dọc
-    <div className="flex flex-col gap-4 items-center w-full max-w-8xl mx-auto">
-      {selectedModels.map((model) => {
-        const answer = getAnswerForModel(model);
+    <div className="flex flex-col gap-4 items-center w-full max-w-4xl mx-auto px-4 py-4">
+      {/* Thông báo lỗi (không che lịch sử) */}
+      {error && (
+        <div className="w-full">
+          <div className="bg-red-50 text-red-700 border border-red-200 rounded-md px-4 py-3">
+            {error}
+          </div>
+        </div>
+      )}
+
+      {/* Lịch sử hội thoại: cũ → mới */}
+      {messages.map((msg) => {
+        const isUser = msg.role === "user";
+        const modelName =
+          !isUser && msg.modelId
+            ? selectedModels.find((m) => m._id === msg.modelId)?.displayName ??
+              "AI"
+            : undefined;
+
         return (
-          // Thêm w-full để mỗi card chiếm toàn bộ chiều rộng của container
-          <div key={model._id} className="w-full">
-            <AnswerCard
-              heading={
-                answer
-                  ? `Phương án từ ${model.displayName}`
-                  : `Sẵn sàng nhận câu trả lời từ ${model.displayName}`
-              }
-              content={answer ? answer.content : "Hỏi tôi bất cứ điều gì!"}
-            />
+          <div
+            key={msg.id}
+            className={`w-full flex ${isUser ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`max-w-[85%] px-4 py-3 rounded-2xl shadow-md ${
+                isUser
+                  ? "bg-[#DCF8C6] text-gray-900 rounded-tr-sm"
+                  : "bg-white text-gray-900 border rounded-tl-sm"
+              }`}
+            >
+              {!isUser && (
+                <div className="text-xs text-gray-500 mb-1">
+                  {modelName || "AI"}
+                </div>
+              )}
+              <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+            </div>
           </div>
         );
       })}
+
+      {/* Trạng thái đang xử lý (không che lịch sử) */}
+      {isLoading && (
+        <div className="w-full flex justify-start">
+          <div className="max-w-[85%] bg-white border rounded-2xl px-4 py-3 shadow-sm">
+            Đang xử lý câu trả lời...
+          </div>
+        </div>
+      )}
     </div>
   );
 }
