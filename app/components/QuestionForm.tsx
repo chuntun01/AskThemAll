@@ -21,13 +21,13 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
     // Sử dụng thẻ <form> và gắn sự kiện onSubmit
     <StyledForm onSubmit={onSubmit}>
       <div className="container">
-        <input
+        <textarea
           className="input"
-          type="text"
           value={question} // Giá trị được kiểm soát bởi state từ page.tsx
           onChange={(e) => setQuestion(e.target.value)} // Cập nhật state ở page.tsx
-          placeholder="Hỏi bất kỳ điều gì..."
+          placeholder="Hỏi bất kỳ điều gì.s.."
           disabled={isLoading} // Vô hiệu hóa khi đang tải
+          rows={1} // Bắt đầu với 1 dòng
         />
         <button className="search-btn" type="submit" disabled={isLoading}>
           {isLoading ? (
@@ -64,18 +64,22 @@ const StyledForm = styled.form`
     padding: 5px 10px;
     border-radius: 50px;
     background: #79a3b1; // Đổi màu nền cho hợp với theme tối
-    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
   }
 
   .input {
     flex: 1;
     padding: 12px 15px;
     border: none;
-    border-radius: 50px;
+    border-radius: 30px;
     font-size: 16px;
     outline: none;
     background: transparent;
     color: #000000; // Đổi màu chữ
+    resize: vertical; // Cho phép kéo giãn
+    min-height: 45px;
+    max-height: 120px;
+    overflow-y: auto;
     &::placeholder {
       color: #7f8c9b;
     }

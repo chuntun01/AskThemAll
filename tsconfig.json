@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5", // Next.js yêu cầu mục này
+    "target": "es5", 
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -15,21 +15,22 @@
     "jsx": "preserve",
     "incremental": true,
     "plugins": [
-      {
-        "name": "next"
-      }
+      { "name": "next" }
     ],
-    // PHẦN QUAN TRỌNG NHẤT CHO ALIAS
+
+    // 🔑 PHẦN QUAN TRỌNG: cấu hình alias
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["*"],
+      "@/lib/*": ["lib/*"],
+      "@/models/*": ["lib/models/*"]
     }
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "**/*.js", // Đảm bảo bao gồm cả file JS
+    "**/*.js",
     ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules"]

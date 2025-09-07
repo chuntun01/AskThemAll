@@ -40,14 +40,7 @@ function normalizeAnswersToMessages(raw: any): Message[] {
 }
 
 export default function Home() {
-  // UI
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const mockHistoryData = [
-    { name: "Sản phẩm A", href: "/san-pham-a" },
-    { name: "Tin tức mới nhất", href: "/tin-tuc" },
-  ];
-
-  // App state
   const [question, setQuestion] = useState("");
   const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
   const [selectedModels, setSelectedModels] = useState<AIModel[]>([]);
@@ -55,13 +48,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-scroll cuối khung message
   const listEndRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    listEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    listEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  // Tải models
   useEffect(() => {
     const fetchModels = async () => {
       try {
@@ -76,7 +67,6 @@ export default function Home() {
     fetchModels();
   }, []);
 
-  // Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedModels.length === 0) {
@@ -89,7 +79,7 @@ export default function Home() {
       return;
     }
 
-    setMessages(prev => [...prev, { id: crypto.randomUUID(), role: "user", content: q }]);
+    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", content: q }]);
     setQuestion("");
     setIsLoading(true);
     setError(null);
@@ -100,19 +90,30 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: q,
-          selectedModelIds: selectedModels.map(m => m.modelId),
+          selectedModelIds: selectedModels.map((m) => m.modelId),
         }),
       });
       if (!response.ok) {
         let errorData: any = {};
-        try { errorData = await response.json(); } catch {}
+        try {
+          errorData = await response.json();
+        } catch {}
         throw new Error(errorData.message || "Yêu cầu thất bại");
       }
       const result = await response.json();
       const assistantMsgs = normalizeAnswersToMessages(result);
-      setMessages(prev => [...prev, ...(assistantMsgs.length ? assistantMsgs : [{
-        id: crypto.randomUUID(), role: "assistant" as const, content: "Mình chưa nhận được trả lời từ server."
-      }])]);
+      setMessages((prev) => [
+        ...prev,
+        ...(assistantMsgs.length
+          ? assistantMsgs
+          : [
+              {
+                id: crypto.randomUUID(),
+                role: "assistant" as const,
+                content: "Mình chưa nhận được trả lời từ server.",
+              },
+            ]),
+      ]);
     } catch (err: any) {
       setError(err?.message || "Đã xảy ra lỗi khi gửi câu hỏi.");
     } finally {
@@ -120,85 +121,92 @@ export default function Home() {
     }
   };
 
-return (
-  // KHÔNG SCROLL BÊN NGOÀI: khóa body bằng h-screen + overflow-hidden
-  <main className="h-screen overflow-hidden bg-[#FCF8EC] pt-16">
-    {/* Navbar */}
-    <NavbarMenu
-      isMenuOpen={isMenuOpen}
-      onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
-      onClose={() => setIsMenuOpen(false)}
-      historyItems={mockHistoryData}
-    />
+  return (
+    <>
+      <style jsx>{`
+        @keyframes gradientShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .gradient-bg {
+          background: linear-gradient(45deg, #8DBCC7, #A4CCD9, #EBFFD8, #38f9d7);
+          background-size: 400% 400%;
+          animation: gradientShift 15s ease infinite;
+        }
+        .glassmorphism {
+          background: rgba(255, 255, 255, 0.25);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+      `}</style>
 
-    {/* Vùng nội dung căn giữa */}
-    <div className="h-full max-w-5xl mx-auto px-4 md:px-6 flex flex-col">
-      {/* Selector model */}
-      <div className="flex justify-center mb-4 shrink-0">
-        <ModelSelector
-          availableModels={availableModels}
-          selectedModels={selectedModels}
-          setSelectedModels={setSelectedModels}
+      <main className="gradient-bg fixed inset-0 overflow-hidden pt-17">
+        <NavbarMenu
+          isMenuOpen={isMenuOpen}
+          onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
+          onClose={() => setIsMenuOpen(false)}
+          historyItems={[]}
         />
-      </div>
 
-      {/* Ô NỘI DUNG CHỨA MESSAGE — CHỈ Ô NÀY CUỘN */}
-      <section className="w-full max-w-3xl mx-auto flex-1 flex items-center justify-center">
-        <div
-          className="
-            w-full h-[60vh] min-h-[420px] max-h-[70vh]
-            rounded-2xl border border-gray-200 bg-white/90 backdrop-blur shadow-xl
-            flex flex-col
-          "
-        >
-          {/* Vùng messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <AnswerDisplay
-              messages={messages}
-              isLoading={isLoading}
+        <div className="h-full max-w-7xl mx-auto px-6 md:px-8 flex flex-col relative z-30">
+          <div className="flex justify-center mb-4 shrink-0 w-full">
+            <ModelSelector
+              availableModels={availableModels}
               selectedModels={selectedModels}
-              error={error}
+              setSelectedModels={setSelectedModels}
             />
-            <div ref={listEndRef} />
           </div>
         </div>
-      </section>
-    </div>
 
-    {/* THANH NHẬP CỐ ĐỊNH — KHÔNG DÍNH Ô MESSAGE, CANH GIỮA MÀN HÌNH */}
-    <form
-      onSubmit={handleSubmit}
-      className="
-        fixed left-1/2 -translate-x-1/2 bottom-5
-        w-[calc(100%-2rem)] max-w-3xl
-        bg-white/80 backdrop-blur rounded-full shadow-2xl border
-        px-3 py-2
-      "
-    >
-      <div className="flex items-center gap-2">
-        <input
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Hỏi bất kỳ điều gì..."
-          className="
-            flex-1 h-12 px-4 rounded-full border border-gray-300 bg-white
-            focus:outline-none focus:ring-2 focus:ring-[#79A3B1] focus:border-transparent
-          "
-        />
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="
-            h-12 px-5 rounded-full
-            bg-[#79A3B1] text-white font-medium
-            hover:bg-[#6b94a2] disabled:opacity-50 disabled:cursor-not-allowed
-            shadow-md
-          "
-        >
-          Gửi
-        </button>
-      </div>
-    </form>
-  </main>
-);
+        <section className="fixed left-1/2 -translate-x-1/2 top-[7.5rem] z-30 w-full max-w-7xl px-6">
+          <div className="w-full h-[calc(100vh-7.5rem-1.5rem)] min-h-[600px] max-h-[calc(100vh-7.5rem-1.5rem)] rounded-3xl glassmorphism flex flex-col">
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              <AnswerDisplay
+                messages={messages}
+                isLoading={isLoading}
+                selectedModels={selectedModels}
+                error={error}
+              />
+              <div ref={listEndRef} />
+            </div>
+
+            <form
+              onSubmit={handleSubmit}
+              className="border-t border-white/40 glassmorphism px-4 py-4 rounded-b-3xl"
+            >
+              <div className="flex items-center gap-2">
+               <textarea
+  rows={1}
+  value={question}
+  onChange={(e) => {
+    setQuestion(e.target.value);
+    e.target.style.height = "auto";
+    e.target.style.height = e.target.scrollHeight + "px";
+  }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault(); // ngăn xuống dòng
+      handleSubmit(e);    // gọi hàm gửi
+    }
+  }}
+  placeholder="Hỏi bất kỳ điều gì..."
+  className="flex-1 max-h-[200px] px-4 py-3 rounded-3xl bg-white/80 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#79A3B1] focus:border-transparent shadow-md resize-none overflow-y-auto transition-all"
+/>
+
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="h-12 px-5 rounded-full bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white font-medium shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Gửi
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </main>
+    </>
+  );
 }

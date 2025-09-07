@@ -25,7 +25,7 @@ const ComboBoxWrapper = styled("div")`
   position: fixed;
   
   
-   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
   z-index: 1000; // Đảm bảo nó luôn nổi lên trên
   width: 90%; // Chiếm 90% chiều rộng màn hình
   width: 100%;
