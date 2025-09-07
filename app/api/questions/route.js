@@ -1,20 +1,22 @@
 // app/api/questions/route.js
-
+import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import connectDB from "@/lib/db";
 import Question from "@/lib/models/Question";
+import Answer from "@/lib/models/Answer";
 import AIModel from "@/lib/models/AIModel";
-import Answer from "@/lib/models/Answer"; // <-- 1. Import model Answer
-import { NextResponse } from "next/server";
 import { askOpenRouter } from "@/lib/services/aiService";
 
-// ... (Hàm GET giữ nguyên) ...
+// (Nếu bạn có GET ở file này thì giữ nguyên phần GET hiện tại của bạn)
 
 export async function POST(request) {
   try {
     await connectDB();
-    const body = await request.json();
-    const { question, userId, selectedModelIds } = body;
 
+    const body = await request.json();
+    const { question, userId, selectedModelIds, threadId } = body || {};
+
+    // Validate input
     if (
       !question ||
       !Array.isArray(selectedModelIds) ||
@@ -26,59 +28,96 @@ export async function POST(request) {
       );
     }
 
+    // Xác định threadId cuối cùng (nếu FE gửi thì dùng, không có thì tạo mới)
+    const finalThreadId =
+      threadId && mongoose.Types.ObjectId.isValid(threadId)
+        ? new mongoose.Types.ObjectId(threadId)
+        : new mongoose.Types.ObjectId();
+
+    // Lấy ra các model theo mảng modelId (string) FE gửi lên
     const foundModels = await AIModel.find({
       modelId: { $in: selectedModelIds },
-    });
+    }).lean();
+
     if (foundModels.length !== selectedModelIds.length) {
       return NextResponse.json(
         { message: "Một hoặc nhiều AI model không hợp lệ." },
         { status: 404 }
       );
     }
-    const modelObjectIds = foundModels.map((model) => model._id);
 
+    // Lưu Question (gắn threadId)
+    const modelObjectIds = foundModels.map((m) => m._id);
     const newQuestion = await Question.create({
-      question,
-      userId,
-      selectedModels: modelObjectIds,
+      question: String(question),
+      userId: userId ?? null,
+      selectedModels: modelObjectIds,   // refs -> AIModel
+      threadId: finalThreadId,          // 👈 NEW: gom nhóm
+      createDate: new Date(),
+      updateDate: new Date(),
     });
 
-    const populatedQuestion = await Question.findById(newQuestion._id).populate(
-      "selectedModels"
+    // Gọi các model sinh câu trả lời (song song)
+    // FE gửi selectedModelIds là danh sách *modelId* (string). Dùng đúng thứ tự để map.
+    const aiPromises = foundModels.map((m) =>
+      askOpenRouter(String(question), m.modelId)
     );
+    const aiResponses = await Promise.all(aiPromises); // array<string>
 
-    const aiPromises = populatedQuestion.selectedModels.map((model) =>
-      askOpenRouter(populatedQuestion.question, model.modelId)
-    );
-    const aiResponses = await Promise.all(aiPromises);
-
-    // --- 2. LOGIC LƯU CÂU TRẢ LỜI ---
-    // Tạo một mảng các document câu trả lời mới
-    const newAnswersData = aiResponses.map((responseText, index) => ({
-      content: responseText,
-      question: newQuestion._id, // Liên kết với câu hỏi vừa tạo
-      authorModel: populatedQuestion.selectedModels[index]._id, // Liên kết với model AI tương ứng
+    // Chuẩn bị dữ liệu Answer để lưu (gắn threadId)
+    const newAnswersData = aiResponses.map((responseText, idx) => ({
+      content: responseText || "",
+      question: newQuestion._id,             // ref -> Question
+      authorModel: foundModels[idx]._id,     // ref -> AIModel
+      threadId: finalThreadId,               // 👈 NEW: gom nhóm
+      createDate: new Date(),
     }));
 
-    // Lưu tất cả các câu trả lời mới vào collection 'answers'
+    // Lưu tất cả Answer
     const savedAnswers = await Answer.insertMany(newAnswersData);
-    const savedAnswerIds = savedAnswers.map((ans) => ans._id);
 
-    // Tìm lại các câu trả lời bằng ID và populate thông tin của authorModel
+    // Populate authorModel để FE hiển thị được tên/modelId
     const populatedAnswers = await Answer.find({
-      _id: { $in: savedAnswerIds },
-    }).populate({
-      path: "authorModel",
-      select: "displayName", // Chỉ lấy trường displayName cho gọn
-    });
+      _id: { $in: savedAnswers.map((a) => a._id) },
+    })
+      .populate({
+        path: "authorModel",
+        select: "modelId displayName", // 👈 FE sẽ đọc modelId/displayName
+      })
+      .lean();
 
-    console.log("Đã lưu thành công các câu trả lời:", savedAnswers);
-    // ------------------------------------
-
+    // Trả về cho FE:
+    // - threadId để lưu vào store và gửi kèm cho lần hỏi sau
+    // - questionId cho tiện debug / liên kết
+    // - answers đã populate (FE đang normalize linh hoạt)
     return NextResponse.json(
       {
-        question: populatedQuestion,
-        answers: savedAnswers, // 3. Trả về các câu trả lời đã được lưu
+        ok: true,
+        threadId: String(finalThreadId),     // 👈 FE lưu lại
+        questionId: String(newQuestion._id),
+        question: {
+          _id: String(newQuestion._id),
+          question: newQuestion.question,
+          userId: newQuestion.userId,
+          selectedModels: newQuestion.selectedModels,
+          threadId: String(finalThreadId),
+          createDate: newQuestion.createDate,
+          updateDate: newQuestion.updateDate,
+        },
+        answers: populatedAnswers.map((a) => ({
+          _id: String(a._id),
+          content: a.content,
+          authorModel: a.authorModel
+            ? {
+                _id: String(a.authorModel._id),
+                modelId: a.authorModel.modelId,
+                displayName: a.authorModel.displayName,
+              }
+            : null,
+          question: String(a.question),
+          threadId: a.threadId ? String(a.threadId) : null,
+          createDate: a.createDate,
+        })),
       },
       { status: 201 }
     );

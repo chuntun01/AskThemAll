@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import NavbarMenu from "../components/NavMenu";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -11,7 +12,21 @@ type DailyRow = { date: string; questions: number };
 type ModelRow = { name: string; count: number };
 type Totals = { questions: number; todayNew: number };
 
+const LS_KEY = "stats:prefs";                    // lưu range, model
+const CACHE_KEY = (r: string) => `stats:data:${r}`; // cache data theo range (nếu có model thì thêm vào key)
+
 export default function StatisticsPage() {
+  const router = useRouter();
+  const sp = useSearchParams();
+
+  // 1) Khởi tạo range từ URL -> localStorage -> mặc định
+  const urlRange = (sp.get("range") as "7d" | "14d" | "30d" | null);
+  const [range, setRange] = useState<"7d" | "14d" | "30d">(
+    urlRange || (typeof window !== "undefined"
+      ? ((JSON.parse(localStorage.getItem(LS_KEY) || "{}").range) as "7d" | "14d" | "30d") || "7d"
+      : "7d")
+  );
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const historyItems = useMemo(
     () => [
@@ -21,20 +36,50 @@ export default function StatisticsPage() {
     []
   );
 
-  const [range, setRange] = useState<"7d" | "14d" | "30d">("7d");
-
   const [totals, setTotals] = useState<Totals>({ questions: 0, todayNew: 0 });
   const [daily, setDaily] = useState<DailyRow[]>([]);
   const [byModel, setByModel] = useState<ModelRow[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [err, setErr] = useState<string | null>(null);
 
+  // 2) Đồng bộ URL khi range đổi (để khi back/forward vẫn giữ)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("range") !== range) {
+      params.set("range", range);
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }
+  }, [range, router]);
+
+  // 3) Lưu lựa chọn vào localStorage (phòng khi vào lại trang từ nơi khác)
+  useEffect(() => {
+    const prefs = { range };
+    localStorage.setItem(LS_KEY, JSON.stringify(prefs));
+  }, [range]);
+
+  // 4) Nạp dữ liệu: ưu tiên đọc cache sessionStorage để hiển thị ngay, rồi gọi API refresh
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       setErr(null);
+
+      // 4a) Thử lấy dữ liệu từ cache (hiển thị tức thì)
+      try {
+        const cached = sessionStorage.getItem(CACHE_KEY(range));
+        if (cached) {
+          const data = JSON.parse(cached);
+          if (!cancelled) {
+            setTotals(data.totals);
+            setDaily(data.daily);
+            setByModel(data.byModel || []);
+            setLoading(false); // đã có gì đó để hiện
+          }
+        }
+      } catch {}
+
+      // 4b) Luôn gọi API để làm mới (và ghi đè cache)
       try {
         const res = await fetch(`/api/stats?range=${range}`, { cache: "no-store" });
         if (!res.ok) throw new Error(await res.text());
@@ -44,12 +89,14 @@ export default function StatisticsPage() {
           setTotals(data.totals);
           setDaily(data.daily);
           setByModel(data.byModel || []);
+          setLoading(false);
         }
+        sessionStorage.setItem(CACHE_KEY(range), JSON.stringify(data));
       } catch (e: any) {
-        if (!cancelled) setErr(e?.message ?? "Lỗi tải dữ liệu");
-        console.error(e);
-      } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setErr(e?.message ?? "Lỗi tải dữ liệu");
+          setLoading(false);
+        }
       }
     }
 
@@ -86,8 +133,7 @@ export default function StatisticsPage() {
         <div className="max-w-7xl mx-auto px-6 md:px-8 pb-16">
           <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold">Thống Kê Sử Dụng</h1>
-              
+              <h1 className="text-2xl md:text-3xl font-bold">Bảng điều khiển thống kê</h1>
             </div>
             <Toolbar range={range} setRange={setRange} />
           </div>
@@ -102,11 +148,11 @@ export default function StatisticsPage() {
             <div className="text-sm text-gray-600">Đang tải dữ liệu…</div>
           ) : (
             <>
+              {/* Stat cards */}
               <section className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-8">
-  <StatCard label="Tổng câu hỏi" value={totals.questions} />
-  <StatCard label="Câu hỏi hôm nay" value={totals.todayNew} />
-</section>
-
+                <StatCard label="Tổng câu hỏi (theo lọc)" value={totals.questions} />
+                <StatCard label="Câu hỏi hôm nay" value={totals.todayNew} />
+              </section>
 
               {/* Charts */}
               <section className="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -132,7 +178,7 @@ export default function StatisticsPage() {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={byModel}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                         <YAxis allowDecimals={false} />
                         <Tooltip />
                         <Legend />
@@ -143,7 +189,7 @@ export default function StatisticsPage() {
                 </ChartCard>
 
                 {/* Pie: AI dùng nhiều nhất (tỉ lệ) */}
-                <ChartCard title="AI dùng nhiều nhất" className="xl:col-span-2">
+                <ChartCard title="AI dùng nhiều nhất (tỉ lệ)" className="xl:col-span-2">
                   <div className="h-80 overflow-visible">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart margin={{ top: 16, right: 24, bottom: 40, left: 24 }}>
@@ -160,7 +206,7 @@ export default function StatisticsPage() {
                           }
                         >
                           {byModel.map((_: any, i: number) => (
-                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                            <Cell key={i} fill={["#8884d8","#82ca9d","#ffc658","#ff8042","#8dd1e1","#a4de6c","#d0ed57"][i % 7]} />
                           ))}
                         </Pie>
                         <Tooltip />
