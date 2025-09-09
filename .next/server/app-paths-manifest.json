@@ -1,7 +1,0 @@
-{
-  "/api/chat-history/route": "app/api/chat-history/route.js",
-  "/api/models/route": "app/api/models/route.js",
-  "/api/stats/route": "app/api/stats/route.js",
-  "/page": "app/page.js",
-  "/statistics/page": "app/statistics/page.js"
-}
