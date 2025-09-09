@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 13, "column": 0}, "map": {"version":3,"sources":["file:///D:/DACN/AskThemAll/app/statistics/page.tsx"],"sourcesContent":["export default function Page() {\r\n  return (\r\n    <div style={{ padding: 24 }}>\r\n      <h1>Statistics works!</h1>\r\n      <p>Đây là trang /statistics.</p>\r\n    </div>\r\n  );\r\n}\r\n"],"names":[],"mappings":";;;;;AAAe,SAAS;IACtB,qBACE,8OAAC;QAAI,OAAO;YAAE,SAAS;QAAG;;0BACxB,8OAAC;0BAAG;;;;;;0BACJ,8OAAC;0BAAE;;;;;;;;;;;;AAGT","debugId":null}}]
-}

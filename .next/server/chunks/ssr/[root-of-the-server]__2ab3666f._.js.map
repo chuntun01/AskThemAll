@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 21, "column": 0}, "map": {"version":3,"sources":["file:///D:/DACN/AskThemAll/app/statistics/page.tsx"],"sourcesContent":["import \"./globals.css\";\r\nimport { ClerkProvider } from \"@clerk/nextjs\"; // ✅ Bổ sung\r\n\r\nexport const metadata = {\r\n  title: \"AskThemAll\",\r\n  description: \"Ask anything with AI\",\r\n};\r\n\r\nexport default function RootLayout({\r\n  children,\r\n}: {\r\n  children: React.ReactNode;\r\n}) {\r\n  return (\r\n    <ClerkProvider> {/* ✅ Bọc toàn bộ App */}\r\n      <html lang=\"en\">\r\n        <body>{children}</body>\r\n      </html>\r\n    </ClerkProvider>\r\n  );\r\n}\r\n"],"names":[],"mappings":";;;;;;;;;;AACA,mSAA+C,YAAY;;;;AAEpD,MAAM,WAAW;IACtB,OAAO;IACP,aAAa;AACf;AAEe,SAAS,WAAW,EACjC,QAAQ,EAGT;IACC,qBACE,8OAAC,yKAAA,CAAA,gBAAa;;YAAC;0BACb,8OAAC;gBAAK,MAAK;0BACT,cAAA,8OAAC;8BAAM;;;;;;;;;;;;;;;;;AAIf","debugId":null}}]
-}
