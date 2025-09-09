@@ -218,7 +218,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$mui$2f$mat
 ;
 function _templateObject() {
     const data = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$swc$2f$helpers$2f$esm$2f$_tagged_template_literal$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["_"])([
-        "\n  /* Sửa ở đây: Tăng chiều rộng để có không gian */\n  position: fixed;\n  \n  \n   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);\n  z-index: 1000; // Đảm bảo nó luôn nổi lên trên\n  width: 90%; // Chiếm 90% chiều rộng màn hình\n  width: 100%;\n  max-width: 800px; /* Đặt chiều rộng tối đa */\n\n  .MuiAutocomplete-root {\n    font-size: 0.85rem;\n  }\n  .MuiOutlinedInput-root {\n    /* Thêm flex-wrap để đảm bảo các tag xuống dòng khi cần */\n    flex-wrap: wrap;\n    background: #79A3B1;\n    color: #F5EFE7;\n    min-height: 32px;\n    font-size: 0.85rem;\n    border-radius: 6px;\n    padding: 6px; /* Tăng padding để chứa tag  */\n  }\n"
+        "\n  position: fixed;\n  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);\n  z-index: 1000;\n  width: 100%;\n  max-width: 800px;\n\n  .MuiAutocomplete-root {\n    font-size: 0.85rem;\n  }\n  .MuiOutlinedInput-root {\n    flex-wrap: wrap;\n    background: #79a3b1;\n    color: #f5efe7;\n    min-height: 32px;\n    font-size: 0.85rem;\n    border-radius: 6px;\n    padding: 6px;\n  }\n"
     ]);
     _templateObject = function() {
         return data;
@@ -234,14 +234,13 @@ const ComboBoxWrapper = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node
 _c = ComboBoxWrapper;
 function ModelSelector(param) {
     let { availableModels = [], selectedModels = [], setSelectedModels } = param;
-    // Đảm bảo luôn là mảng
     const safeAvailableModels = Array.isArray(availableModels) ? availableModels : [];
     const safeSelectedModels = Array.isArray(selectedModels) ? selectedModels : [];
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(ComboBoxWrapper, {
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$mui$2f$material$2f$esm$2f$Autocomplete$2f$Autocomplete$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["default"], {
             multiple: true,
             options: safeAvailableModels,
-            getOptionLabel: (option)=>option.displayName,
+            getOptionLabel: (option)=>option.isFree === false ? "".concat(option.displayName, " (không khả dụng)") : option.displayName,
             isOptionEqualToValue: (option, value)=>option._id === value._id,
             value: safeSelectedModels,
             onChange: (event, newValue)=>{
@@ -249,18 +248,16 @@ function ModelSelector(param) {
             },
             size: "small",
             renderTags: (value, getTagProps)=>value.map((option, index)=>{
-                    // Tách `key` ra khỏi các props còn lại
                     const { key, ...tagProps } = getTagProps({
                         index
                     });
-                    // Áp dụng key trực tiếp và spread phần còn lại
                     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$mui$2f$material$2f$esm$2f$Chip$2f$Chip$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
-                        label: option.displayName,
+                        label: option.isFree === false ? "".concat(option.displayName, " (không khả dụng)") : option.displayName,
                         ...tagProps
                     }, key, false, {
                         fileName: "[project]/app/components/ModelSelector.tsx",
-                        lineNumber: 79,
-                        columnNumber: 20
+                        lineNumber: 77,
+                        columnNumber: 15
                     }, void 0);
                 }),
             renderInput: (params)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$mui$2f$material$2f$esm$2f$TextField$2f$TextField$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -275,17 +272,17 @@ function ModelSelector(param) {
                     }
                 }, void 0, false, {
                     fileName: "[project]/app/components/ModelSelector.tsx",
-                    lineNumber: 83,
+                    lineNumber: 90,
                     columnNumber: 11
                 }, void 0)
         }, void 0, false, {
             fileName: "[project]/app/components/ModelSelector.tsx",
-            lineNumber: 64,
+            lineNumber: 59,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/app/components/ModelSelector.tsx",
-        lineNumber: 63,
+        lineNumber: 58,
         columnNumber: 5
     }, this);
 }

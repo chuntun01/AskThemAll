@@ -1,5 +1,4 @@
 {
-  "/api/chat-history/[id]/route": "app/api/chat-history/[id]/route.js",
   "/api/chat-history/route": "app/api/chat-history/route.js",
   "/api/models/route": "app/api/models/route.js",
   "/api/questions/route": "app/api/questions/route.js",

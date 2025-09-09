@@ -210,39 +210,33 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$mui$2f$mat
 ;
 ;
 const ComboBoxWrapper = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$mui$2f$system$2f$esm$2f$styled$2f$styled$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__styled$3e$__["styled"])("div")`
-  /* Sửa ở đây: Tăng chiều rộng để có không gian */
   position: fixed;
-  
-  
-   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
-  z-index: 1000; // Đảm bảo nó luôn nổi lên trên
-  width: 90%; // Chiếm 90% chiều rộng màn hình
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
   width: 100%;
-  max-width: 800px; /* Đặt chiều rộng tối đa */
+  max-width: 800px;
 
   .MuiAutocomplete-root {
     font-size: 0.85rem;
   }
   .MuiOutlinedInput-root {
-    /* Thêm flex-wrap để đảm bảo các tag xuống dòng khi cần */
     flex-wrap: wrap;
-    background: #79A3B1;
-    color: #F5EFE7;
+    background: #79a3b1;
+    color: #f5efe7;
     min-height: 32px;
     font-size: 0.85rem;
     border-radius: 6px;
-    padding: 6px; /* Tăng padding để chứa tag  */
+    padding: 6px;
   }
 `;
 function ModelSelector({ availableModels = [], selectedModels = [], setSelectedModels }) {
-    // Đảm bảo luôn là mảng
     const safeAvailableModels = Array.isArray(availableModels) ? availableModels : [];
     const safeSelectedModels = Array.isArray(selectedModels) ? selectedModels : [];
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(ComboBoxWrapper, {
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$mui$2f$material$2f$esm$2f$Autocomplete$2f$Autocomplete$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__["default"], {
             multiple: true,
             options: safeAvailableModels,
-            getOptionLabel: (option)=>option.displayName,
+            getOptionLabel: (option)=>option.isFree === false ? `${option.displayName} (không khả dụng)` : option.displayName,
             isOptionEqualToValue: (option, value)=>option._id === value._id,
             value: safeSelectedModels,
             onChange: (event, newValue)=>{
@@ -250,18 +244,16 @@ function ModelSelector({ availableModels = [], selectedModels = [], setSelectedM
             },
             size: "small",
             renderTags: (value, getTagProps)=>value.map((option, index)=>{
-                    // Tách `key` ra khỏi các props còn lại
                     const { key, ...tagProps } = getTagProps({
                         index
                     });
-                    // Áp dụng key trực tiếp và spread phần còn lại
                     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$mui$2f$material$2f$esm$2f$Chip$2f$Chip$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
-                        label: option.displayName,
+                        label: option.isFree === false ? `${option.displayName} (không khả dụng)` : option.displayName,
                         ...tagProps
                     }, key, false, {
                         fileName: "[project]/app/components/ModelSelector.tsx",
-                        lineNumber: 79,
-                        columnNumber: 20
+                        lineNumber: 77,
+                        columnNumber: 15
                     }, void 0);
                 }),
             renderInput: (params)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$mui$2f$material$2f$esm$2f$TextField$2f$TextField$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
@@ -276,17 +268,17 @@ function ModelSelector({ availableModels = [], selectedModels = [], setSelectedM
                     }
                 }, void 0, false, {
                     fileName: "[project]/app/components/ModelSelector.tsx",
-                    lineNumber: 83,
+                    lineNumber: 90,
                     columnNumber: 11
                 }, void 0)
         }, void 0, false, {
             fileName: "[project]/app/components/ModelSelector.tsx",
-            lineNumber: 64,
+            lineNumber: 59,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/app/components/ModelSelector.tsx",
-        lineNumber: 63,
+        lineNumber: 58,
         columnNumber: 5
     }, this);
 }

@@ -11,6 +11,7 @@ interface AIModel {
   _id: string;
   modelId: string;
   displayName: string;
+  isFree?: boolean; // 👈 thêm thuộc tính này
 }
 
 // Định nghĩa props cho component
@@ -21,28 +22,23 @@ interface ModelSelectorProps {
 }
 
 const ComboBoxWrapper = styled("div")`
-  /* Sửa ở đây: Tăng chiều rộng để có không gian */
   position: fixed;
-  
-  
-   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
-  z-index: 1000; // Đảm bảo nó luôn nổi lên trên
-  width: 90%; // Chiếm 90% chiều rộng màn hình
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
   width: 100%;
-  max-width: 800px; /* Đặt chiều rộng tối đa */
+  max-width: 800px;
 
   .MuiAutocomplete-root {
     font-size: 0.85rem;
   }
   .MuiOutlinedInput-root {
-    /* Thêm flex-wrap để đảm bảo các tag xuống dòng khi cần */
     flex-wrap: wrap;
-    background: #79A3B1;
-    color: #F5EFE7;
+    background: #79a3b1;
+    color: #f5efe7;
     min-height: 32px;
     font-size: 0.85rem;
     border-radius: 6px;
-    padding: 6px; /* Tăng padding để chứa tag  */
+    padding: 6px;
   }
 `;
 
@@ -51,7 +47,6 @@ export default function ModelSelector({
   selectedModels = [],
   setSelectedModels,
 }: ModelSelectorProps) {
-  // Đảm bảo luôn là mảng
   const safeAvailableModels = Array.isArray(availableModels)
     ? availableModels
     : [];
@@ -64,7 +59,11 @@ export default function ModelSelector({
       <Autocomplete
         multiple
         options={safeAvailableModels}
-        getOptionLabel={(option) => option.displayName}
+        getOptionLabel={(option) =>
+          option.isFree === false
+            ? `${option.displayName} (không khả dụng)`
+            : option.displayName
+        }
         isOptionEqualToValue={(option, value) => option._id === value._id}
         value={safeSelectedModels}
         onChange={(event, newValue) => {
@@ -73,10 +72,18 @@ export default function ModelSelector({
         size="small"
         renderTags={(value, getTagProps) =>
           value.map((option, index) => {
-            // Tách `key` ra khỏi các props còn lại
             const { key, ...tagProps } = getTagProps({ index });
-            // Áp dụng key trực tiếp và spread phần còn lại
-            return <Chip key={key} label={option.displayName} {...tagProps} />;
+            return (
+              <Chip
+                key={key}
+                label={
+                  option.isFree === false
+                    ? `${option.displayName} (không khả dụng)`
+                    : option.displayName
+                }
+                {...tagProps}
+              />
+            );
           })
         }
         renderInput={(params) => (
@@ -94,5 +101,3 @@ export default function ModelSelector({
     </ComboBoxWrapper>
   );
 }
-
-
