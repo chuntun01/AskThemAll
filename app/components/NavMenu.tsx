@@ -448,7 +448,9 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
               ))}
             </div>
           ) : histErr ? (
-            <div className="text-sm text-red-700">{histErr}</div>
+            <div className="text-sm text-red-700">
+              bạn chưa đăng nhập!<p>{histErr}</p>
+            </div>
           ) : history.length === 0 ? (
             <div className="text-sm text-[var(--muted)]">Chưa có lịch sử</div>
           ) : (

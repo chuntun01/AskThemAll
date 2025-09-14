@@ -26,7 +26,7 @@ export default function AdminUserList() {
         if (data.success) {
           setUsers(data.users);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(err.message);
       } finally {
         setIsLoading(false);
