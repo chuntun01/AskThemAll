@@ -4,8 +4,19 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import NavbarMenu from "../components/NavMenu";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar, PieChart, Pie, Cell,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 
 type Range = "7d" | "14d" | "30d";
@@ -15,12 +26,21 @@ type Totals = { questions: number; todayNew: number };
 
 const LS_KEY = "stats:prefs";
 const CACHE_KEY = (r: string) => `stats:data:${r}`;
-const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#8dd1e1", "#a4de6c", "#d0ed57"];
+const COLORS = [
+  "#8884d8",
+  "#82ca9d",
+  "#ffc658",
+  "#ff8042",
+  "#8dd1e1",
+  "#a4de6c",
+  "#d0ed57",
+];
 
 // ——— helpers ———
 const getInitialRange = (sp: URLSearchParams | null): Range => {
   const urlRange = (sp?.get("range") as Range | null) ?? null;
-  if (urlRange === "7d" || urlRange === "14d" || urlRange === "30d") return urlRange;
+  if (urlRange === "7d" || urlRange === "14d" || urlRange === "30d")
+    return urlRange;
 
   if (typeof window !== "undefined") {
     try {
@@ -33,11 +53,16 @@ const getInitialRange = (sp: URLSearchParams | null): Range => {
   return "7d";
 };
 
-const shortLabel = (s: string, max = 14) => (s?.length > max ? s.slice(0, max - 1) + "…" : s);
+const shortLabel = (s: string, max = 14) =>
+  s?.length > max ? s.slice(0, max - 1) + "…" : s;
 
 // Tooltip tuỳ biến cho Pie (hiện số + %)
 function CustomTooltip(props: any) {
-  const { active, payload, total } = props as { active: boolean; payload: any[]; total: number };
+  const { active, payload, total } = props as {
+    active: boolean;
+    payload: any[];
+    total: number;
+  };
   if (active && payload && payload.length) {
     const p = payload[0];
     const name: string = p?.name ?? p?.payload?.name ?? "";
@@ -156,19 +181,38 @@ export default function StatisticsPage() {
     return cleaned;
   }, [byModelRaw]);
 
-  const totalCount = useMemo(() => byModel.reduce((s, x) => s + x.count, 0), [byModel]);
+  const totalCount = useMemo(
+    () => byModel.reduce((s, x) => s + x.count, 0),
+    [byModel]
+  );
 
   return (
     <>
       <style jsx>{`
-        html, body { background: #F6FBF1; color: #111; }
+        html,
+        body {
+          background: #f6fbf1;
+          color: #111;
+        }
         @keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
         }
         .gradient-bg {
-          background: linear-gradient(45deg, #8DBCC7, #A4CCD9, #EBFFD8, #38f9d7);
+          background: linear-gradient(
+            45deg,
+            #8dbcc7,
+            #a4ccd9,
+            #ebffd8,
+            #38f9d7
+          );
           background-size: 400% 400%;
           animation: gradientShift 15s ease infinite;
         }
@@ -185,7 +229,9 @@ export default function StatisticsPage() {
         <div className="max-w-7xl mx-auto px-6 md:px-8 pb-16">
           <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold">Bảng điều khiển thống kê</h1>
+              <h1 className="text-2xl md:text-3xl font-bold">
+                Bảng điều khiển thống kê
+              </h1>
             </div>
             <Toolbar range={range} setRange={setRange} />
           </div>
@@ -202,7 +248,10 @@ export default function StatisticsPage() {
             <>
               {/* Stat cards */}
               <section className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-8">
-                <StatCard label="Tổng câu hỏi (theo lọc)" value={totals.questions} />
+                <StatCard
+                  label="Tổng câu hỏi (theo lọc)"
+                  value={totals.questions}
+                />
                 <StatCard label="Câu hỏi hôm nay" value={totals.todayNew} />
               </section>
 
@@ -218,7 +267,13 @@ export default function StatisticsPage() {
                         <YAxis allowDecimals={false} />
                         <Tooltip />
                         <Legend />
-                        <Line type="monotone" dataKey="questions" name="Câu hỏi" stroke="#8884d8" strokeWidth={2} />
+                        <Line
+                          type="monotone"
+                          dataKey="questions"
+                          name="Câu hỏi"
+                          stroke="#8884d8"
+                          strokeWidth={2}
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -242,7 +297,12 @@ export default function StatisticsPage() {
                         <YAxis allowDecimals={false} />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="count" name="Số lượt" fill="#8884d8" radius={[8, 8, 0, 0]} />
+                        <Bar
+                          dataKey="count"
+                          name="Số lượt"
+                          fill="#8884d8"
+                          radius={[8, 8, 0, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -252,40 +312,46 @@ export default function StatisticsPage() {
                 <ChartCard title="AI dùng nhiều nhất (tỉ lệ)">
                   <div className="h-[520px] overflow-visible">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ top: 16, right: 24, bottom: 40, left: 24 }}>
+                      <PieChart
+                        margin={{ top: 16, right: 24, bottom: 40, left: 24 }}
+                      >
                         <Pie
                           data={byModel}
                           dataKey="count"
                           nameKey="name"
                           cx="50%"
                           cy="50%"
-                          outerRadius={170}   // to hơn
-                          labelLine={false}   // tắt label trên lát để không đè
+                          outerRadius={170} // to hơn
+                          labelLine={false} // tắt label trên lát để không đè
                         >
                           {byModel.map((_, i) => (
                             <Cell key={i} fill={COLORS[i % COLORS.length]} />
                           ))}
                         </Pie>
                         {/* Tooltip tuỳ biến: số + % */}
-                        <Tooltip content={<CustomTooltip total={totalCount} />} />
+                        <Tooltip
+                          content={<CustomTooltip total={totalCount} />}
+                        />
                         <Legend
-  verticalAlign="bottom"
-  height={60}
-  content={({ payload }) => (
-    <ul className="grid grid-cols-4 gap-x-4 gap-y-2 text-sm justify-items-start">
-      {payload?.map((entry, index) => (
-        <li key={`item-${index}`} className="flex items-center space-x-2">
-          <span
-            className="inline-block w-3 h-3 rounded-sm"
-            style={{ backgroundColor: entry.color }}
-          />
-          <span>{entry.value}</span>
-        </li>
-      ))}
-    </ul>
-  )}
-/>
-
+                          verticalAlign="bottom"
+                          height={60}
+                          content={({ payload }) => (
+                            <ul className="grid grid-cols-4 gap-x-4 gap-y-2 text-sm justify-items-start">
+                              {payload?.map((entry, index) => (
+                                <li
+                                  key={`item-${index}`}
+                                  className="flex items-center space-x-2"
+                                >
+                                  <span
+                                    className="inline-block w-3 h-3 rounded-sm"
+                                    style={{ backgroundColor: entry.color }}
+                                  />
+                                  <span>{entry.value}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -300,7 +366,8 @@ export default function StatisticsPage() {
 }
 
 function Toolbar({
-  range, setRange,
+  range,
+  setRange,
 }: {
   range: Range;
   setRange: (v: Range) => void;
@@ -331,7 +398,10 @@ function Toolbar({
 }
 
 function Select({
-  label, value, onChange, options,
+  label,
+  value,
+  onChange,
+  options,
 }: {
   label: string;
   value: string;
@@ -341,7 +411,11 @@ function Select({
   return (
     <label className="flex items-center gap-2 text-sm">
       <span className="text-gray-600 whitespace-nowrap">{label}</span>
-      <select className="px-3 py-2 rounded-xl border bg-white hover:bg-gray-50" value={value} onChange={onChange}>
+      <select
+        className="px-3 py-2 rounded-xl border bg-white hover:bg-gray-50"
+        value={value}
+        onChange={onChange}
+      >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -361,7 +435,15 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ChartCard({ title, className, children }: { title: string; className?: string; children: React.ReactNode }) {
+function ChartCard({
+  title,
+  className,
+  children,
+}: {
+  title: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className={`bg-white rounded-2xl shadow p-4 ${className ?? ""}`}>
       <div className="flex items-center justify-between mb-3">

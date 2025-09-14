@@ -1,15 +1,12 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "ES2022"
-    ],
+    "lib": ["dom", "dom.iterable", "ES2022"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "jsx": "preserve",
-    "allowJs": true,
+    "allowJs": false,
+    "strict": true, // bật kiểm tra nghiêm ngặt để tránh lỗi với thư viện bên thứ ba
     "resolveJsonModule": true,
     "isolatedModules": true,
     "incremental": true,
@@ -26,15 +23,9 @@
     // Alias
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "*"
-      ],
-      "@/lib/*": [
-        "lib/*"
-      ],
-      "@/models/*": [
-        "lib/models/*"
-      ]
+      "@/*": ["*"],
+      "@/lib/*": ["lib/*"],
+      "@/models/*": ["lib/models/*"]
     }
   },
   "include": [
@@ -44,9 +35,5 @@
     "next-env.d.ts",
     ".next/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    ".next",
-    "dist"
-  ]
+  "exclude": ["node_modules", ".next", "dist"]
 }

@@ -15,6 +15,15 @@ const AnswerSchema = new Schema(
       required: true,
       index: true,
     },
+    clerkId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    username: {
+      type: String,
+      required: true,
+    },
 
     // Tham chiếu đến AI model đã tạo ra câu trả lời này
     authorModel: {

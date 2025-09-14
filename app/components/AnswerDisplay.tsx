@@ -56,7 +56,11 @@ export default function AnswerDisplay({
         );
 
       if (hitSel) {
-        return hitSel.displayName || hitSel.modelId.split("/").pop() || hitSel.modelId;
+        return (
+          hitSel.displayName ||
+          hitSel.modelId.split("/").pop() ||
+          hitSel.modelId
+        );
       }
 
       return msg.modelId.split("/").pop() || msg.modelId;
@@ -83,7 +87,9 @@ export default function AnswerDisplay({
         return (
           <div
             key={msg.id}
-            className={`w-full flex ${isUser ? "justify-end" : "justify-start"}`}
+            className={`w-full flex ${
+              isUser ? "justify-end" : "justify-start"
+            }`}
           >
             <div
               className={[
@@ -96,10 +102,14 @@ export default function AnswerDisplay({
               ].join(" ")}
             >
               {!isUser && (
-                <div className="text-xs text-gray-500 mb-1">{modelName || "AI"}</div>
+                <div className="text-xs text-gray-500 mb-1">
+                  {modelName || "AI"}
+                </div>
               )}
 
-              <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+              <div className="whitespace-pre-wrap break-words">
+                {msg.content}
+              </div>
 
               {/* Nút Copy */}
               {!isUser && (

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -9,8 +10,10 @@ import {
   SignedIn,
   SignedOut,
   UserButton,
+  useUser,
 } from "@clerk/nextjs";
 import { useChatStore } from "@/lib/store/chat";
+import { Users } from "lucide-react";
 
 interface NavbarMenuProps {
   isMenuOpen: boolean;
@@ -19,7 +22,12 @@ interface NavbarMenuProps {
   historyItems: Array<{ name: string; href: string }>;
 }
 
-type HistoryItem = { id: string; name: string; href: string; updatedAt?: number };
+type HistoryItem = {
+  id: string;
+  name: string;
+  href: string;
+  updatedAt?: number;
+};
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -42,9 +50,14 @@ const formatTime = (ms?: number) => {
 
 function Backdrop({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/40 z-[999]" onClick={onClose} aria-hidden="true" />
+    <div
+      className="fixed inset-0 bg-black/40 z-[999]"
+      onClick={onClose}
+      aria-hidden="true"
+    />
   );
 }
+
 function ModalCard({
   title,
   children,
@@ -55,7 +68,12 @@ function ModalCard({
   onClose: () => void;
 }) {
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[1000] grid place-items-center p-4" onClick={onClose}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-[1000] grid place-items-center p-4"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-black/10 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -76,9 +94,64 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   onClose,
   historyItems: _ignored,
 }) => {
-  const pathname = usePathname();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  const { isLoaded, isSignedIn, user } = useUser();
+  const [fetchTrigger, setFetchTrigger] = useState(0);
+
+  // SỬA: Fetch role trực tiếp từ DB (đơn giản, không cần metadata)
+  useEffect(() => {
+    console.log(
+      "NavMenu: isLoaded=",
+      isLoaded,
+      "isSignedIn=",
+      isSignedIn,
+      "userId=",
+      user?.id
+    );
+    if (isLoaded && isSignedIn) {
+      const fetchRole = async () => {
+        try {
+          setRoleError(null);
+          const res = await fetch("/api/user-role", {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          });
+          console.log("NavMenu: Fetch status:", res.status);
+          if (res.status >= 400) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          console.log("NavMenu: DB response:", data);
+          setUserRole(data.role || "member");
+        } catch (error: unknown) {
+          console.error("NavMenu: Error:", error);
+          const message =
+            error instanceof Error
+              ? error.message
+              : typeof error === "string"
+              ? error
+              : "Unknown error";
+          setRoleError(message);
+          setUserRole("member");
+        }
+      };
+      fetchRole();
+    } else if (isLoaded && !isSignedIn) {
+      setUserRole(null);
+    }
+  }, [isLoaded, isSignedIn, fetchTrigger]);
+
+  const isAdmin = userRole === "admin";
+  console.log("NavMenu: userRole=", userRole, "isAdmin=", isAdmin);
+
   const router = useRouter();
+  const handleRefetch = () => setFetchTrigger((prev) => prev + 1);
+
+  const pathname = usePathname();
   const onStatistics = pathname?.startsWith("/statistics");
+  const onUsers = pathname?.startsWith("/users");
 
   const { setMessages, setCurrentThreadId, clearMessages } = useChatStore();
 
@@ -91,7 +164,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   const [renameItem, setRenameItem] = useState<HistoryItem | null>(null);
   const [renameText, setRenameText] = useState("");
 
-  // THEME + SCROLLBAR (an toàn)
+  // THEME + SCROLLBAR
   const ThemeAndScrollbar = () => (
     <style jsx global>{`
       :root {
@@ -155,8 +228,9 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
         if (!res.ok) throw new Error(await res.text());
         const data: HistoryItem[] = await res.json();
         if (!cancelled) setHistory(data);
-      } catch (e: any) {
-        if (!cancelled) setHistErr(e?.message ?? "Không tải được lịch sử");
+      } catch (e: unknown) {
+        if (!cancelled)
+          setHistErr(e instanceof Error ? e.message : "Không tải được lịch sử");
       } finally {
         if (!cancelled) setLoadingHistory(false);
       }
@@ -168,7 +242,9 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
 
   const handleOpenChat = async (threadId: string) => {
     try {
-      const res = await fetch(`/api/chat-history/${threadId}`, { cache: "no-store" });
+      const res = await fetch(`/api/chat-history/${threadId}`, {
+        cache: "no-store",
+      });
       if (!res.ok) throw new Error(await res.text());
       const data: { id: string; messages: ChatMessage[] } = await res.json();
 
@@ -176,8 +252,12 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
       setCurrentThreadId(data.id);
       onClose();
       if (pathname !== "/") router.push("/");
-    } catch (e: any) {
-      setHistErr(e?.message ?? "Không mở được đoạn chat này.");
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setHistErr(e.message);
+      } else {
+        setHistErr("Không mở được đoạn chat này.");
+      }
     }
   };
 
@@ -202,7 +282,9 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
       setRenameItem(null);
       return;
     }
-    setHistory((h) => h.map((x) => (x.id === renameItem.id ? { ...x, name } : x)));
+    setHistory((h) =>
+      h.map((x) => (x.id === renameItem.id ? { ...x, name } : x))
+    );
     setRenameItem(null);
   };
   const submitDelete = async () => {
@@ -214,6 +296,18 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   return (
     <nav className="bg-[var(--nav-bg)] text-[var(--fg)] shadow-lg fixed top-0 left-0 right-0 z-[100] h-16">
       <ThemeAndScrollbar />
+
+      {roleError && (
+        <div className="fixed top-4 right-4 bg-red-100 p-2 rounded text-sm z-[101]">
+          {roleError}
+          <button
+            onClick={handleRefetch}
+            className="ml-2 text-blue-600 underline"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
 
       <div className="flex items-center justify-between px-4 h-full max-w-8xl mx-auto">
         {/* Left */}
@@ -230,7 +324,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
             ☰
           </button>
 
-          {onStatistics && (
+          {(onStatistics || onUsers) && (
             <Link
               href="/"
               className="px-3 py-2 rounded-md bg-white/30 hover:bg-white/50 transition text-sm md:text-base"
@@ -283,7 +377,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
         className={[
           "fixed top-0 left-0 z-[95] h-full w-80 max-w-[92vw]",
           "bg-[var(--panel)] p-4 shadow-xl",
-          "transition-transform duration-300 ease-out", // tránh arbitrary property
+          "transition-transform duration-300 ease-out",
           isMenuOpen ? "translate-x-0" : "-translate-x-full",
         ].join(" ")}
       >
@@ -298,19 +392,35 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
 
         {/* Actions */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-4">Chức năng</h2>
+          <h2 className="text-2xl font-bold mb-4">
+            Chức năng
+            <span style={{ color: "#0070f3", fontSize: "1rem" }}>
+              ({userRole || "loading..."})
+            </span>
+          </h2>
           <ul className="space-y-4 text-xl">
-            <li>
-             <a
-  href="/statistics"
-  onClick={onClose}
-  className="block no-underline hover:underline transition focus:outline-none focus:ring-2 focus:ring-black/10 rounded-sm"
->
-  Thống kê
-</a>
-
-
-            </li>
+            {isAdmin && (
+              <>
+                <li>
+                  <Link
+                    href="/statistics"
+                    onClick={onClose}
+                    className="block no-underline hover:underline transition focus:outline-none focus:ring-2 focus:ring-black/10 rounded-sm"
+                  >
+                    Thống kê
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/users"
+                    onClick={onClose}
+                    className="block no-underline font-bold text-black hover:underline transition"
+                  >
+                    Quản lý người dùng
+                  </Link>
+                </li>
+              </>
+            )}
 
             <li>
               <button
@@ -325,12 +435,16 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
 
         {/* History */}
         <div>
-          <h2 className="text-2xl font-bold mb-2">Lịch Sử</h2>
-
+          <h2 className="text-2xl font-bold mb-2">
+            {isAdmin ? "Lịch sử hệ thống" : "Lịch sử chat của bạn"}
+          </h2>
           {loadingHistory ? (
             <div className="space-y-2">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-14 rounded-2xl bg-white/30 backdrop-blur-sm" />
+                <div
+                  key={i}
+                  className="h-14 rounded-2xl bg-white/30 backdrop-blur-sm"
+                />
               ))}
             </div>
           ) : histErr ? (
@@ -375,7 +489,9 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setOpenMenuId((cur) => (cur === item.id ? null : item.id));
+                        setOpenMenuId((cur) =>
+                          cur === item.id ? null : item.id
+                        );
                       }}
                       className="
                         absolute right-2 top-1/2 -translate-y-1/2
@@ -456,7 +572,10 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
       {renameItem && (
         <>
           <Backdrop onClose={() => setRenameItem(null)} />
-          <ModalCard title="Đổi tên đoạn chat" onClose={() => setRenameItem(null)}>
+          <ModalCard
+            title="Đổi tên đoạn chat"
+            onClose={() => setRenameItem(null)}
+          >
             <label className="block text-sm text-gray-700 mb-2">Tên mới</label>
             <input
               className="w-full h-10 px-3 rounded-lg border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/20"
