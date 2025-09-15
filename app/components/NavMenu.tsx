@@ -141,7 +141,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
     } else if (isLoaded && !isSignedIn) {
       setUserRole(null);
     }
-  }, [isLoaded, isSignedIn, fetchTrigger]);
+  }, [isLoaded, isSignedIn, fetchTrigger, user?.id]);
 
   const isAdmin = userRole === "admin";
   console.log("NavMenu: userRole=", userRole, "isAdmin=", isAdmin);
