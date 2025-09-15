@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // app/api/user-answers/route.js
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";

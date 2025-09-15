@@ -2,12 +2,12 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getUserByClerkId } from "@/lib/actions/user.actions.js";
+import { getUserByClerkId } from "@/lib/actions/user.actions";
 
 export async function GET(req) {
   try {
     // 1. Lấy userId của người dùng đang đăng nhập từ Clerk
-    const { userId } = auth();
+    const { userId: clerkId } = auth();
 
     if (!userId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -32,7 +32,9 @@ export async function GET(req) {
     }
 
     // 4. Nếu là admin, thực hiện hành động và trả về dữ liệu
-    const adminData = { message: "Bạn không có quyền truy cập chức năng này!." };
+    const adminData = {
+      message: "Bạn không có quyền truy cập chức năng này!.",
+    };
     return NextResponse.json({ success: true, data: adminData });
   } catch (error) {
     console.error("Admin route error:", error);
