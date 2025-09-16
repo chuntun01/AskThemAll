@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse, type NextRequest } from "next/server";
 import mongoose from "mongoose";
 import { auth } from "@clerk/nextjs/server";
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: Error) {
     console.error("Lỗi trong API /api/questions:", error);
     return NextResponse.json(
       { message: "Lỗi server", error: error.message },

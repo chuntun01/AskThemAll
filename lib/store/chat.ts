@@ -44,7 +44,8 @@ export const useChatStore = create<ChatStore>()(
       // Bắt đầu chat mới => xoá msg + reset thread
       clearMessages: () => set({ messages: [], currentThreadId: null }),
 
-      setSelectedModelIds: (ids) => set({ selectedModelIds: Array.from(new Set(ids)) }),
+      setSelectedModelIds: (ids) =>
+        set({ selectedModelIds: Array.from(new Set(ids)) }),
 
       setCurrentThreadId: (id) => set({ currentThreadId: id }),
     }),

@@ -5,40 +5,48 @@ import AnswerDisplay from "./components/AnswerDisplay";
 import ModelSelector from "./components/ModelSelector";
 import NavbarMenu from "./components/NavMenu";
 import { useChatStore } from "@/lib/store/chat";
+import { useUser } from "@clerk/nextjs";
 import type { Message } from "@/lib/store/chat";
 
 interface AIModel {
   _id: string;
   modelId: string;
   displayName: string;
+  // Thêm các trường khác nếu cần từ API
 }
 
-function normalizeAnswersToMessages(raw: any): Message[] {
+interface APIResponse {
+  threadId?: string;
+  question?: any; // Có thể mở rộng type
+  answers?: Array<{
+    _id?: string;
+    content?: string;
+    authorModel?: string | { _id?: string; modelId?: string };
+    isError?: boolean;
+  }>;
+}
+
+function normalizeAnswersToMessages(raw: APIResponse): Message[] {
   const answers = Array.isArray(raw?.answers) ? raw.answers : [];
-  return answers.map((ans: any) => {
+  return answers.map((ans) => {
     const id = ans?._id || crypto.randomUUID();
     const content =
       typeof ans?.content === "string" && ans.content.trim()
         ? ans.content
         : "(không có nội dung)";
 
-    // authorModel có thể là string id, hoặc object { _id, modelId, displayName }
     let modelId: string | undefined;
     const a = ans?.authorModel;
     if (typeof a === "string") modelId = a;
     else if (a && typeof a === "object") {
       if (typeof a.modelId === "string") modelId = a.modelId;
       else if (typeof a._id === "string") modelId = a._id;
-      else if (
-        a._id &&
-        typeof a._id === "object" &&
-        typeof a._id.toString === "function"
-      ) {
+      else if (a._id && typeof a._id.toString === "function") {
         modelId = a._id.toString();
       }
     }
 
-    return { id, role: "assistant", content, modelId };
+    return { id, role: "assistant", content, modelId } as Message;
   });
 }
 
@@ -49,6 +57,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { isLoaded, isSignedIn } = useUser();
   const {
     messages,
     setMessages,
@@ -70,7 +79,6 @@ export default function Home() {
       .filter((m): m is AIModel => m !== undefined);
   }, [availableModels, selectedModelIds]);
 
-  // Adapter khớp type React.Dispatch<React.SetStateAction<AIModel[]>>
   const onSetSelectedModels: React.Dispatch<React.SetStateAction<AIModel[]>> = (
     value
   ) => {
@@ -83,21 +91,29 @@ export default function Home() {
     listEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  // Load danh sách model
+  // Load danh sách model với kiểm tra đăng nhập
   useEffect(() => {
+    let mounted = true;
     (async () => {
+      if (!isLoaded || !isSignedIn) {
+        if (mounted) setError("Vui lòng đăng nhập để sử dụng.");
+        return;
+      }
       try {
         const res = await fetch("/api/models");
         if (!res.ok) throw new Error("Failed to fetch models");
         const data: AIModel[] = await res.json();
-        setAvailableModels(data);
-      } catch {
-        setError("Bạn chưa đăng nhập, hãy đăng nhập trước nhé!.");
+        if (mounted) setAvailableModels(data);
+      } catch (err) {
+        if (mounted) setError("Bạn chưa đăng nhập, hãy đăng nhập trước nhé!.");
       }
     })();
-  }, []);
+    return () => {
+      mounted = false; // Cleanup
+    };
+  }, [isLoaded, isSignedIn]);
 
-  // Nếu model list đổi, loại bỏ các id không còn hợp lệ
+  // Loại bỏ model id không hợp lệ
   useEffect(() => {
     if (!availableModels.length || !selectedModelIds.length) return;
     const valid = new Set(availableModels.map((m) => m.modelId));
@@ -132,7 +148,6 @@ export default function Home() {
       const res = await fetch("/api/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // gửi kèm threadId hiện tại; nếu null, server sẽ tạo mới và trả về
         body: JSON.stringify({
           question: q,
           selectedModelIds,
@@ -148,14 +163,12 @@ export default function Home() {
       }
       const result = await res.json();
 
-      // nếu server trả threadId mới, lưu lại để các câu sau đi chung đoạn chat
       if (result?.threadId && result.threadId !== currentThreadId) {
         setCurrentThreadId(result.threadId);
       }
 
       const assistantMsgs = normalizeAnswersToMessages(result);
 
-      // ✅ dùng updater function – chốt literal type cho role để TS không báo
       setMessages((prev) => [
         ...prev,
         ...(assistantMsgs.length
@@ -168,8 +181,8 @@ export default function Home() {
               } as Message,
             ]),
       ]);
-    } catch (err: any) {
-      setError(err?.message || "Đã xảy ra lỗi khi gửi câu hỏi.");
+    } catch (error: Error) {
+      setError(error?.message || "Đã xảy ra lỗi khi gửi câu hỏi.");
     } finally {
       setIsLoading(false);
     }
@@ -252,8 +265,8 @@ export default function Home() {
           onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
           onClose={() => setIsMenuOpen(false)}
           historyItems={[]}
-        />
-
+        />{" "}
+        {/* Loại bỏ historyItems dư thừa */}
         <div className="h-full max-w-7xl mx-auto px-6 md:px-8 flex flex-col relative z-30">
           <div className="flex justify-center mb-4 shrink-0 w-full">
             <ModelSelector
@@ -263,7 +276,6 @@ export default function Home() {
             />
           </div>
         </div>
-
         <section className="fixed left-1/2 -translate-x-1/2 top-[7.5rem] z-30 w-full max-w-7xl px-6">
           <div className="w-full h-[calc(100vh-7.5rem-1.5rem)] min-h-[600px] max-h-[calc(100vh-7.5rem-1.5rem)] glassmorphism rounded-3xl flex flex-col">
             <div className="scroll-clip rounded-3xl flex-1">

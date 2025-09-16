@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { upsertUser } from "@/lib/actions/user.actions";
 
-export async function POST(req : any) {
+export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
   if (!WEBHOOK_SECRET) {
     throw new Error("Missing CLERK_WEBHOOK_SECRET");
@@ -33,7 +33,7 @@ export async function POST(req : any) {
       "svix-signature": svix_signature,
     });
   } catch (err) {
-    const errorMessage = (err instanceof Error) ? err.message : String(err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
     console.error("Webhook verification failed:", errorMessage);
     return new Response(`Webhook verification failed: ${errorMessage}`, {
       status: 400,
@@ -46,7 +46,7 @@ export async function POST(req : any) {
   if (eventType === "user.created") {
     const { id, email_addresses, image_url, username } = evt.data;
 
-    // Kiểm tra email một cách cẩn thận
+    // Kiểm tra email
     if (
       !email_addresses ||
       email_addresses.length === 0 ||

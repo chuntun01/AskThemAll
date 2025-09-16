@@ -7,14 +7,6 @@ import { getUserByClerkId, getAllUsers } from "@/lib/actions/user.actions";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  console.log("--- DEBUGGING /api/users ---");
-  const secretKey = process.env.CLERK_SECRET_KEY;
-  console.log(
-    "CLERK_SECRET_KEY loaded:",
-    secretKey ? `Found, starting with sk_...` : "!!! NOT FOUND !!!"
-  );
-  console.log("--------------------------");
-
   try {
     // Lấy thông tin người dùng đã xác thực từ Clerk
     const { userId: clerkID } = await auth();
