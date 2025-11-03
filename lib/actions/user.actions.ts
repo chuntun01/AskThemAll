@@ -1,5 +1,4 @@
 // lib/actions/user.actions.ts
-import mongoose from "mongoose";
 import User from "../models/User";
 import connectDB from "../db"; // 👈 Import hàm kết nối từ file chuyên dụng
 
@@ -17,10 +16,11 @@ export async function upsertUser(userData: UserData) {
   try {
     await connectDB(); // Sử dụng hàm connectDB được import
     const updatedUser = await User.findOneAndUpdate(
-      { clerkId: userData.clerkId },
+      {clerkId: userData.clerkId},
       userData,
-      { new: true, upsert: true }
-    );
+      {new: true, upsert: true}
+    ).exec(); // 👈 thêm .exec() để TypeScript hiểu đúng là Promise
+
     return JSON.parse(JSON.stringify(updatedUser));
   } catch (error) {
     console.error("Error upserting user:", error);
@@ -32,7 +32,7 @@ export async function upsertUser(userData: UserData) {
 export async function getUserByClerkId(clerkId: string) {
   try {
     await connectDB(); // Sử dụng hàm connectDB được import
-    const user = await User.findOne({ clerkId: clerkId });
+    const user = await User.findOne({clerkId: clerkId});
     if (!user) {
       return null;
     }

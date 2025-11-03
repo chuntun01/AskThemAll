@@ -1,20 +1,21 @@
-// app/api/admin/data/route.js (Ví dụ)
+// app/api/admin/data/route.ts
 
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getUserByClerkId } from "@/lib/actions/user.actions";
 
-export async function GET(req) {
+export async function GET() {
   try {
     // 1. Lấy userId của người dùng đang đăng nhập từ Clerk
-    const { userId: clerkId } = auth();
 
-    if (!userId) {
+    const { userId: clerkId } = await auth();
+
+    if (!clerkId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Dùng userId để lấy thông tin user TỪ DATABASE CỦA BẠN
-    const userFromDb = await getUserByClerkId(userId);
+    // 2. Dùng clerkId để lấy thông tin user TỪ DATABASE CỦA BẠN
+    const userFromDb = await getUserByClerkId(clerkId);
 
     if (!userFromDb) {
       return NextResponse.json(

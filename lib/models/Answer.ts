@@ -1,55 +1,36 @@
-// lib/models/Answer.js
-import { Schema, model, models } from "mongoose";
+import mongoose, {Schema, Document, Model} from "mongoose";
 
-const AnswerSchema = new Schema(
+export interface IAnswer extends Document {
+  content: string;
+  question: mongoose.Types.ObjectId;
+  clerkId: string;
+  username: string;
+  authorModel: mongoose.Types.ObjectId;
+  threadId?: mongoose.Types.ObjectId | null;
+  createDate?: Date;
+}
+
+const AnswerSchema = new Schema<IAnswer>(
   {
-    content: {
-      type: String,
-      required: true,
-    },
-
-    // Tham chiếu đến câu hỏi mà nó trả lời
+    content: {type: String, required: true},
     question: {
       type: Schema.Types.ObjectId,
       ref: "Question",
       required: true,
       index: true,
     },
-    clerkId: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    username: {
-      type: String,
-      required: true,
-    },
-
-    // Tham chiếu đến AI model đã tạo ra câu trả lời này
-    authorModel: {
-      type: Schema.Types.ObjectId,
-      ref: "AIModel",
-      required: true,
-    },
-
-    // --- NEW: gom nhóm đoạn chat ---
-    threadId: {
-      type: Schema.Types.ObjectId,
-      index: true,
-      default: null,
-    },
-
-    createDate: {
-      type: Date,
-      default: Date.now,
-      index: true,
-    },
+    clerkId: {type: String, required: true, unique: true},
+    username: {type: String, required: true},
+    authorModel: {type: Schema.Types.ObjectId, ref: "AIModel", required: true},
+    threadId: {type: Schema.Types.ObjectId, index: true, default: null},
+    createDate: {type: Date, default: Date.now, index: true},
   },
-  { collection: "answers" }
+  {collection: "answers"}
 );
 
-// Index gợi ý thêm cho hiệu năng khi lấy dữ liệu
-AnswerSchema.index({ threadId: 1, createDate: 1 });
+AnswerSchema.index({threadId: 1, createDate: 1});
 
-const Answer = models.Answer || model("Answer", AnswerSchema);
+const Answer: Model<IAnswer> =
+  mongoose.models.Answer || mongoose.model<IAnswer>("Answer", AnswerSchema);
+
 export default Answer;

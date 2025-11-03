@@ -1,61 +1,53 @@
+// app/api/chat-history/route.ts
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import {
   getChatHistoryByUserId,
   getAllChatHistory,
 } from "@/lib/actions/chat.actions";
-import { getUserByClerkId } from "@/lib/actions/user.actions";
-import mongoose from "mongoose";
-
-interface ChatHistoryItem {
-  _id: mongoose.Types.ObjectId;
-  question: string;
-  createDate: Date;
-  updatedAt: Date;
-  // Thêm các trường khác nếu cần (e.g., userId, threadId)
-}
-
-interface FormattedHistoryItem {
-  id: string;
-  name: string;
-  href: string;
-  createDate: number; // Timestamp
-}
+import { getUserByClerkId } from "@/lib/actions/user.actions"; // Import hàm kiểm tra user
 
 export async function GET() {
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
-      console.error("Authorization failed: clerkId is null.");
+    const { userId: clerkID } = await auth();
+    if (!clerkID) {
+      console.error("Authorization failed: clerkID is null.");
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     // Lấy thông tin user từ DB để kiểm tra role
-    const currentUser = await getUserByClerkId(clerkId);
+    const currentUser = await getUserByClerkId(clerkID);
 
-    let history: ChatHistoryItem[];
+    let history;
     if (currentUser?.role === "admin") {
       // Nếu là admin, lấy toàn bộ lịch sử
-      history = (await getAllChatHistory()) || [];
+      history = await getAllChatHistory();
     } else {
       // Nếu là member, chỉ lấy lịch sử của chính họ
-      history = (await getChatHistoryByUserId(clerkId)) || [];
+      history = await getChatHistoryByUserId(clerkID);
     }
 
-    // Định dạng dữ liệu cho Frontend
-    const formattedHistory: FormattedHistoryItem[] = history.map((item) => ({
-      id: item._id.toString(),
-      name: item.question || "No title", // Fallback nếu question null
-      href: `/chat/${item._id.toString()}`, // Đảm bảo _id hợp lệ
-      createDate: new Date(item.createDate).getTime(), // Chuyển thành timestamp
-    }));
+    // Trả về dữ liệu dưới dạng mảng `HistoryItem[]` mà NavMenu đang mong đợi
+    // Giả sử mỗi item trong history có trường 'id', 'name', 'updatedAt'
+    const formattedHistory = history.map(
+      (item: {
+        createDate: string | number | Date;
+        _id: { toString: () => Error };
+        question: Error;
+        updatedAt: string | number | Date;
+      }) => ({
+        id: item._id.toString(),
+        name: item.question, // Giả sử tiêu đề cuộc trò chuyện nằm trong trường 'title'
+        href: `/chat/${item._id}`,
+        createDate: new Date(item.createDate).getTime(),
+      })
+    );
 
-    return NextResponse.json(formattedHistory); // Trả về mảng đã định dạng
-  } catch (error: Error) {
-    // SỬA: Type Error thay any
-    console.error("API /chat-history Error:", error.stack); // Thêm stack trace
+    return NextResponse.json(formattedHistory); // Trả về dữ liệu đã được định dạng
+  } catch (error) {
+    console.error("API /chat-history Error:", error);
     return NextResponse.json(
-      { message: "Internal Server Error", error: error.message },
+      { message: "Internal Server Error" },
       { status: 500 }
     );
   }

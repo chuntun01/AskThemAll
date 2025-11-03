@@ -11,9 +11,9 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Kết nối tới MongoDB Atlas
+// Kết nối MongoDB Atlas
 mongoose
-  .connect(process.env.local.MONGODB_URI)
+  .connect(process.env.MONGODB_URI)
   .then(() => console.log(`Connected to database successfully!`))
   .catch((err) => console.error("DB connection error:", err));
 

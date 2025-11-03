@@ -31,7 +31,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
         />
         <button className="search-btn" type="submit" disabled={isLoading}>
           {isLoading ? (
-            // Hiển thị icon loading đơn giản
+            // Hiển thị icon loading
             <div className="loader"></div>
           ) : (
             <svg viewBox="0 0 24 24" className="search__icon">
@@ -46,7 +46,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
   );
 };
 
-// Sửa lại CSS một chút để hoạt động tốt hơn với layout mới
+// Sửa lại CSS
 const StyledForm = styled.form`
   position: fixed;
   bottom: 1.5rem; // Cách đáy màn hình 24px

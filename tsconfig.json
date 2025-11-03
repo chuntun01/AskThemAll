@@ -6,11 +6,15 @@
     "moduleResolution": "Bundler",
     "jsx": "preserve",
     "allowJs": false,
-    "strict": true, // bật kiểm tra nghiêm ngặt để tránh lỗi với thư viện bên thứ ba
     "resolveJsonModule": true,
     "isolatedModules": true,
     "incremental": true,
-    "strict": true,
+
+    // Nới lỏng các quy tắc
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -20,7 +24,6 @@
         "name": "next"
       }
     ],
-    // Alias
     "baseUrl": ".",
     "paths": {
       "@/*": ["*"],

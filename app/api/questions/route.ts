@@ -124,10 +124,10 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: Error) {
+  } catch (error: unknown) {
     console.error("Lỗi trong API /api/questions:", error);
     return NextResponse.json(
-      { message: "Lỗi server", error: error.message },
+      { message: "Lỗi server", error: (error as Error).message },
       { status: 500 }
     ); // SỬA: Đóng ngoặc đúng
   }

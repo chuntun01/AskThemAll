@@ -1,6 +1,6 @@
 // components/AdminUserList.tsx
 "use client";
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect} from "react";
 import Link from "next/link";
 
 interface UserProfile {
@@ -27,7 +27,9 @@ export default function AdminUserList() {
           setUsers(data.users);
         }
       } catch (err: unknown) {
-        setError(err.message);
+        const message =
+          err instanceof Error ? err.message : "Đã xảy ra lỗi không xác định";
+        setError(message);
       } finally {
         setIsLoading(false);
       }
@@ -36,7 +38,7 @@ export default function AdminUserList() {
   }, []);
 
   if (isLoading) return <div>Đang tải danh sách người dùng...</div>;
-  if (error) return <div style={{ color: "red" }}>Lỗi: {error}</div>;
+  if (error) return <div style={{color: "red"}}>Lỗi: {error}</div>;
 
   return (
     <ul
@@ -63,15 +65,15 @@ export default function AdminUserList() {
               }}
               className="hover:bg-white/30 transition-colors"
             >
-              <p style={{ margin: 0, fontWeight: "500" }}>{user.username}</p>
-              <p style={{ margin: 0, fontSize: "0.8rem", color: "#555" }}>
+              <p style={{margin: 0, fontWeight: "500"}}>{user.username}</p>
+              <p style={{margin: 0, fontSize: "0.8rem", color: "#555"}}>
                 {user.email}
               </p>
             </Link>
           </li>
         ))
       ) : (
-        <li style={{ color: "#777", fontSize: "0.9rem" }}>
+        <li style={{color: "#777", fontSize: "0.9rem"}}>
           Không tìm thấy người dùng nào.
         </li>
       )}

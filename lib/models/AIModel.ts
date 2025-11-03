@@ -1,8 +1,19 @@
-// File: lib/models/AIModel.js
-import { Schema, model, models } from "mongoose";
+// File: lib/models/AIModel.ts
 
-// Ghi chú: Chúng ta sử dụng cú pháp import ES Module nhất quán
-const AIModelSchema = new Schema({
+import mongoose, { Schema, Document, Model, models } from "mongoose";
+
+// 1. Sửa lại Interface để khớp với Schema
+export interface IAIModel extends Document {
+  modelId: string;
+  displayName: string;
+  provider: string;
+  isFree: boolean;
+  createdAt: Date; // Mongoose tự động thêm trường này nếu dùng timestamps
+  updatedAt: Date; // Mongoose tự động thêm trường này nếu dùng timestamps
+}
+
+// 2. Định nghĩa Schema, gắn nó với Interface để tăng cường kiểm tra
+const AIModelSchema: Schema<IAIModel> = new Schema({
   modelId: {
     type: String,
     required: true,
@@ -20,9 +31,12 @@ const AIModelSchema = new Schema({
     type: Boolean,
     default: true,
   },
+}, { 
+  timestamps: true // Thêm tùy chọn này rất hữu ích để tự động quản lý createdAt/updatedAt
 });
 
-// Ghi chú: Sử dụng `models` được import trực tiếp và cú pháp `export default`
-const AIModel = models.AIModel || model("AIModel", AIModelSchema);
+// 3. Tạo Model với logic kiểm tra tồn tại (phần này bạn đã làm đúng)
+const AIModel: Model<IAIModel> =
+  models.AIModel || mongoose.model<IAIModel>("AIModel", AIModelSchema); 
 
 export default AIModel;

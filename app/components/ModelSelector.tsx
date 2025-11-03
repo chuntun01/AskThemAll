@@ -3,15 +3,9 @@
 import * as React from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
-import { styled } from "@mui/system";
+import {styled} from "@mui/system";
 import Chip from "@mui/material/Chip";
-
-// Định nghĩa lại interface AIModel ở đây để component độc lập
-interface AIModel {
-  _id: string;
-  modelId: string;
-  displayName: string;
-}
+import {AIModel} from "@/types/AIModel";
 
 // Định nghĩa props cho component
 interface ModelSelectorProps {
@@ -23,9 +17,8 @@ interface ModelSelectorProps {
 const ComboBoxWrapper = styled("div")`
   /* Sửa ở đây: Tăng chiều rộng để có không gian */
   position: fixed;
-  
-  
-   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
   z-index: 1000; // Đảm bảo nó luôn nổi lên trên
   width: 90%; // Chiếm 90% chiều rộng màn hình
   width: 100%;
@@ -37,8 +30,8 @@ const ComboBoxWrapper = styled("div")`
   .MuiOutlinedInput-root {
     /* Thêm flex-wrap để đảm bảo các tag xuống dòng khi cần */
     flex-wrap: wrap;
-    background: #79A3B1;
-    color: #F5EFE7;
+    background: #79a3b1;
+    color: #f5efe7;
     min-height: 32px;
     font-size: 0.85rem;
     border-radius: 6px;
@@ -74,9 +67,20 @@ export default function ModelSelector({
         renderTags={(value, getTagProps) =>
           value.map((option, index) => {
             // Tách `key` ra khỏi các props còn lại
-            const { key, ...tagProps } = getTagProps({ index });
+            const {key, ...tagProps} = getTagProps({index});
             // Áp dụng key trực tiếp và spread phần còn lại
-            return <Chip key={key} label={option.displayName} {...tagProps} />;
+            return (
+              <Chip
+                {...getTagProps({index})}
+                key={key}
+                label={
+                  option.isFree === false
+                    ? `${option.displayName} (không khả dụng)`
+                    : option.displayName
+                }
+                {...tagProps}
+              />
+            );
           })
         }
         renderInput={(params) => (
@@ -86,7 +90,7 @@ export default function ModelSelector({
             placeholder="Tìm kiếm model..."
             size="small"
             InputLabelProps={{
-              style: { color: "#000000" },
+              style: {color: "#000000"},
             }}
           />
         )}
@@ -94,5 +98,3 @@ export default function ModelSelector({
     </ComboBoxWrapper>
   );
 }
-
-
