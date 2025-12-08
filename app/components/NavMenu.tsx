@@ -19,6 +19,7 @@ interface NavbarMenuProps {
   onMenuClick: () => void;
   onClose: () => void;
   historyItems: Array<{ name: string; href: string }>;
+  modelSelector?: React.ReactNode; // ⬅ select model truyền từ page.tsx
 }
 
 type HistoryItem = {
@@ -93,14 +94,13 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   onMenuClick,
   onClose,
   historyItems: _ignored,
+  modelSelector,
 }) => {
   const [userRole, setUserRole] = useState<string | null>(null); // "admin" | "member" | null
   const [roleError, setRoleError] = useState<string | null>(null);
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
-  const { isLoaded, isSignedIn, user } = useUser();
-
-  // Lấy role từ API /api/user-role (trả về isAdmin: boolean)
+  // fetch role từ DB
   useEffect(() => {
     console.log(
       "NavMenu: isLoaded=",
@@ -177,20 +177,21 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   const ThemeAndScrollbar = () => (
     <style jsx global>{`
       :root {
-        --bg: #cfe7ed;
-        --panel: #b9d9e2;
-        --nav-bg: #b9d9e2;
-        --fg: #0b1720;
-        --muted: #4b5a63;
-        --accent: #456268;
+        --bg: #f1f5f9;
+        --panel: #fdf7e6;
+        --nav-bg: #fdf7e6;
+        --fg: #0f172a;
+        --muted: #64748b;
+        --accent: #4f46e5;
       }
+
       .history-list {
         scrollbar-width: thin;
         scrollbar-color: transparent transparent;
         scrollbar-gutter: stable both-edges;
       }
       .history-list:hover {
-        scrollbar-color: rgba(0, 0, 0, 0.28) transparent;
+        scrollbar-color: rgba(15, 23, 42, 0.4) transparent;
       }
       .history-list::-webkit-scrollbar {
         width: 6px;
@@ -205,10 +206,10 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
         background-clip: padding-box;
       }
       .history-list:hover::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.28);
+        background: rgba(15, 23, 42, 0.35);
       }
       .history-list:hover::-webkit-scrollbar-thumb:active {
-        background: rgba(0, 0, 0, 0.38);
+        background: rgba(15, 23, 42, 0.5);
       }
     `}</style>
   );
@@ -310,7 +311,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   };
 
   return (
-    <nav className="bg-[var(--nav-bg)] text-[var(--fg)] shadow-lg fixed top-0 left-0 right-0 z-[100] h-16">
+    <nav className="fixed inset-x-0 top-0 z-[100] border-b border-slate-200/70 bg-[var(--nav-bg)] text-[var(--fg)]">
       <ThemeAndScrollbar />
 
       {roleError && (
@@ -325,13 +326,16 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
         </div>
       )}
 
-      <div className="flex items-center justify-between px-4 h-full max-w-8xl mx-auto">
-        {/* Left */}
-        <div className="flex items-center gap-2 w-60">
+      {/* --- START NAVBAR LAYOUT CHANGE --- */}
+      {/* Sử dụng Grid 3 cột để chia bố cục: Trái - Giữa - Phải */}
+      <div className="w-full h-14 md:h-16 px-4 md:px-6 grid grid-cols-3 items-center">
+        
+        {/* LEFT: Menu Button & Back Button */}
+        <div className="flex items-center gap-2 justify-start">
           <button
             onClick={onMenuClick}
             className={`p-2 rounded-md text-xl transition-colors duration-150 ${
-              isMenuOpen ? "opacity-0 pointer-events-none" : "hover:bg-white/30"
+              isMenuOpen ? "opacity-0 pointer-events-none" : "hover:bg-white/40"
             }`}
             aria-label="Mở menu"
             aria-expanded={isMenuOpen}
@@ -343,7 +347,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
           {(onStatistics || onUsers || onAIModels) && (
             <Link
               href="/"
-              className="px-3 py-2 rounded-md bg-white/30 hover:bg-white/50 transition text-sm md:text-base"
+              className="hidden sm:inline-block px-2 py-1 rounded-md bg-white/40 hover:bg-white/70 transition text-xs sm:text-sm whitespace-nowrap"
               aria-label="Về trang chủ"
             >
               ← Trang chủ
@@ -351,26 +355,45 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
           )}
         </div>
 
-        {/* Title */}
-        <h1 className="text-lg font-bold whitespace-nowrap">Ask Them All</h1>
+        {/* CENTER: Logo / Title */}
+        <div className="flex items-center justify-center">
+          <h1 className="text-lg md:text-xl font-bold tracking-tight whitespace-nowrap cursor-default">
+            Ask Them All
+          </h1>
+        </div>
 
-        {/* Right: auth */}
-        <div className="flex justify-end w-60">
+        {/* RIGHT: Model Selector + Profile */}
+        <div className="flex items-center justify-end gap-3">
+          {/* Model Selector (Chỉ hiện trên desktop) */}
+          {modelSelector && (
+            <div className="hidden md:flex min-w-[140px] justify-end">
+              {modelSelector}
+            </div>
+          )}
+
+          {/* User / Auth Buttons */}
           <div className="flex items-center gap-2">
             <SignedOut>
               <SignInButton />
               <SignUpButton>
-                <button className="bg-[var(--accent)] text-white rounded-full font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 cursor-pointer hover:brightness-110 transition">
+                <button className="bg-[var(--accent)] text-white rounded-full font-medium text-xs sm:text-sm h-9 sm:h-10 px-4 sm:px-5 cursor-pointer hover:brightness-110 transition">
                   Sign Up
                 </button>
               </SignUpButton>
             </SignedOut>
             <SignedIn>
-              <UserButton />
+              <UserButton 
+                 appearance={{
+                  elements: {
+                    userButtonAvatarBox: "w-9 h-9 sm:w-10 sm:h-10"
+                  }
+                }}
+              />
             </SignedIn>
           </div>
         </div>
       </div>
+      {/* --- END NAVBAR LAYOUT CHANGE --- */}
 
       {/* Overlay */}
       <div

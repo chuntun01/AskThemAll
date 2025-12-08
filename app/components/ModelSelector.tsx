@@ -3,98 +3,64 @@
 import * as React from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
-import {styled} from "@mui/system";
-import Chip from "@mui/material/Chip";
-import {AIModel} from "@/types/AIModel";
+import type { AIModel } from "@/types/AIModel";
 
-// Định nghĩa props cho component
 interface ModelSelectorProps {
   availableModels: AIModel[];
   selectedModels: AIModel[];
   setSelectedModels: React.Dispatch<React.SetStateAction<AIModel[]>>;
 }
 
-const ComboBoxWrapper = styled("div")`
-  /* Sửa ở đây: Tăng chiều rộng để có không gian */
-  position: fixed;
-
-  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
-  z-index: 1000; // Đảm bảo nó luôn nổi lên trên
-  width: 90%; // Chiếm 90% chiều rộng màn hình
-  width: 100%;
-  max-width: 800px; /* Đặt chiều rộng tối đa */
-
-  .MuiAutocomplete-root {
-    font-size: 0.85rem;
-  }
-  .MuiOutlinedInput-root {
-    /* Thêm flex-wrap để đảm bảo các tag xuống dòng khi cần */
-    flex-wrap: wrap;
-    background: #79a3b1;
-    color: #f5efe7;
-    min-height: 32px;
-    font-size: 0.85rem;
-    border-radius: 6px;
-    padding: 6px; /* Tăng padding để chứa tag  */
-  }
-`;
-
-export default function ModelSelector({
+const ModelSelector: React.FC<ModelSelectorProps> = ({
   availableModels = [],
   selectedModels = [],
   setSelectedModels,
-}: ModelSelectorProps) {
-  // Đảm bảo luôn là mảng
-  const safeAvailableModels = Array.isArray(availableModels)
-    ? availableModels
-    : [];
-  const safeSelectedModels = Array.isArray(selectedModels)
-    ? selectedModels
-    : [];
+}) => {
+  const safeAvailable = Array.isArray(availableModels) ? availableModels : [];
+  const safeSelected = Array.isArray(selectedModels) ? selectedModels : [];
+
+  // --- THÊM LOGIC LỌC Ở ĐÂY ---
+  // Giả sử model có trường 'isFree' là true/false. 
+  // Nếu logic của bạn khác (ví dụ: price === 0), hãy sửa lại điều kiện trong .filter()
+  const freeModels = safeAvailable.filter((model) => model.isFree === true);
 
   return (
-    <ComboBoxWrapper>
-      <Autocomplete
-        multiple
-        options={safeAvailableModels}
-        getOptionLabel={(option) => option.displayName}
-        isOptionEqualToValue={(option, value) => option._id === value._id}
-        value={safeSelectedModels}
-        onChange={(event, newValue) => {
-          if (newValue.length <= 5) setSelectedModels(newValue);
-        }}
-        size="small"
-        renderTags={(value, getTagProps) =>
-          value.map((option, index) => {
-            // Tách `key` ra khỏi các props còn lại
-            const {key, ...tagProps} = getTagProps({index});
-            // Áp dụng key trực tiếp và spread phần còn lại
-            return (
-              <Chip
-                {...getTagProps({index})}
-                key={key}
-                label={
-                  option.isFree === false
-                    ? `${option.displayName} (không khả dụng)`
-                    : option.displayName
-                }
-                {...tagProps}
-              />
-            );
-          })
-        }
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="AI Model"
-            placeholder="Tìm kiếm model..."
-            size="small"
-            InputLabelProps={{
-              style: {color: "#000000"},
-            }}
-          />
-        )}
-      />
-    </ComboBoxWrapper>
+    <Autocomplete
+      multiple
+      // Thay vì truyền safeAvailable, ta truyền danh sách đã lọc (freeModels)
+      options={freeModels}
+      value={safeSelected}
+      getOptionLabel={(option) => option.displayName}
+      isOptionEqualToValue={(option, value) => option._id === value._id}
+      disableCloseOnSelect
+      onChange={(_, newValue) => {
+        if (newValue.length <= 5) setSelectedModels(newValue);
+      }}
+      // Ẩn chip trong ô input – model sẽ show bên panel phải
+      renderTags={() => null}
+      size="small"
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          placeholder={
+            safeSelected.length
+              ? `${safeSelected.length} model được chọn`
+              : "Chọn model..."
+          }
+        />
+      )}
+      sx={{
+        minWidth: 220,
+        "& .MuiOutlinedInput-root": {
+          borderRadius: 9999,
+          backgroundColor: "rgba(255,255,255,0.95)",
+          fontSize: 13,
+          height: 36,
+          paddingInline: 1,
+        },
+      }}
+    />
   );
-}
+};
+
+export default ModelSelector;
