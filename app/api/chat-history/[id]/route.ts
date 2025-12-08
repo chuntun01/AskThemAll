@@ -29,11 +29,18 @@ export async function GET(
 
     // Xác định threadId
     let threadId: mongoose.Types.ObjectId;
-    if (
-      baseQuestion?.threadId &&
-      mongoose.Types.ObjectId.isValid(baseQuestion.threadId)
-    ) {
-      threadId = new mongoose.Types.ObjectId(baseQuestion.threadId as any);
+
+    if (baseQuestion?.threadId) {
+      // Ép kiểu cho TypeScript, runtime vẫn ok
+      const rawThread = baseQuestion.threadId as unknown as
+        | mongoose.Types.ObjectId
+        | string;
+
+      if (mongoose.Types.ObjectId.isValid(rawThread)) {
+        threadId = new mongoose.Types.ObjectId(rawThread);
+      } else {
+        threadId = asObjectId;
+      }
     } else {
       threadId = asObjectId;
     }
