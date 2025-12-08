@@ -1,25 +1,25 @@
 // app/api/chat-history/route.ts
-import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import {auth} from "@clerk/nextjs/server";
+import {NextResponse} from "next/server";
 import {
   getChatHistoryByUserId,
   getAllChatHistory,
 } from "@/lib/actions/chat.actions";
-import { getUserByClerkId } from "@/lib/actions/user.actions"; // Import hàm kiểm tra user
+import {getUserByClerkId} from "@/lib/actions/userDb.action"; // Import hàm kiểm tra user
 
 export async function GET() {
   try {
-    const { userId: clerkID } = await auth();
+    const {userId: clerkID} = await auth();
     if (!clerkID) {
       console.error("Authorization failed: clerkID is null.");
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({message: "Unauthorized"}, {status: 401});
     }
 
     // Lấy thông tin user từ DB để kiểm tra role
     const currentUser = await getUserByClerkId(clerkID);
 
     let history;
-    if (currentUser?.role === "admin") {
+    if (currentUser?.isAdmin === true) {
       // Nếu là admin, lấy toàn bộ lịch sử
       history = await getAllChatHistory();
     } else {
@@ -32,7 +32,7 @@ export async function GET() {
     const formattedHistory = history.map(
       (item: {
         createDate: string | number | Date;
-        _id: { toString: () => Error };
+        _id: {toString: () => Error};
         question: Error;
         updatedAt: string | number | Date;
       }) => ({
@@ -46,9 +46,6 @@ export async function GET() {
     return NextResponse.json(formattedHistory); // Trả về dữ liệu đã được định dạng
   } catch (error) {
     console.error("API /chat-history Error:", error);
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({message: "Internal Server Error"}, {status: 500});
   }
 }

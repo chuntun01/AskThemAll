@@ -2,17 +2,17 @@
 
 import mongoose, { Schema, Document, Model, models } from "mongoose";
 
-// 1. Sửa lại Interface để khớp với Schema
+// Sửa lại Interface để khớp với Schema
 export interface IAIModel extends Document {
   modelId: string;
   displayName: string;
   provider: string;
   isFree: boolean;
-  createdAt: Date; // Mongoose tự động thêm trường này nếu dùng timestamps
-  updatedAt: Date; // Mongoose tự động thêm trường này nếu dùng timestamps
+  createdAt: Date; 
+  updatedAt: Date; 
 }
 
-// 2. Định nghĩa Schema, gắn nó với Interface để tăng cường kiểm tra
+// Định nghĩa Schema, gắn nó với Interface để tăng cường kiểm tra
 const AIModelSchema: Schema<IAIModel> = new Schema({
   modelId: {
     type: String,
@@ -32,10 +32,10 @@ const AIModelSchema: Schema<IAIModel> = new Schema({
     default: true,
   },
 }, { 
-  timestamps: true // Thêm tùy chọn này rất hữu ích để tự động quản lý createdAt/updatedAt
+  timestamps: true // Thêm tùy chọn để tự động quản lý createdAt/updatedAt
 });
 
-// 3. Tạo Model với logic kiểm tra tồn tại (phần này bạn đã làm đúng)
+//Tạo Model với logic kiểm tra tồn tại 
 const AIModel: Model<IAIModel> =
   models.AIModel || mongoose.model<IAIModel>("AIModel", AIModelSchema); 
 

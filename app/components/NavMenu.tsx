@@ -28,6 +28,7 @@ type HistoryItem = {
   href: string;
   updatedAt?: number;
 };
+
 type ChatMessage = {
   id: string;
   isAdmin: boolean;
@@ -95,9 +96,8 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   historyItems: _ignored,
   modelSelector,
 }) => {
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null); // "admin" | "member" | null
   const [roleError, setRoleError] = useState<string | null>(null);
-  const { isLoaded, isSignedIn, user } = useUser();
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // fetch role từ DB
@@ -110,6 +110,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
       "userId=",
       user?.id
     );
+
     if (isLoaded && isSignedIn) {
       const fetchRole = async () => {
         try {
@@ -119,13 +120,18 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
             credentials: "include",
             cache: "no-store",
           });
+
           console.log("NavMenu: Fetch status:", res.status);
-          if (res.status >= 400) {
+
+          if (!res.ok) {
             throw new Error(`HTTP ${res.status}`);
           }
+
           const data = await res.json();
           console.log("NavMenu: DB response:", data);
-          setUserRole(data.role || "member");
+
+          const isAdmin = data?.isAdmin === true;
+          setUserRole(isAdmin ? "admin" : "member");
         } catch (error: unknown) {
           console.error("NavMenu: Error:", error);
           const message =
@@ -138,6 +144,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
           setUserRole("member");
         }
       };
+
       fetchRole();
     } else if (isLoaded && !isSignedIn) {
       setUserRole(null);
@@ -153,6 +160,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   const pathname = usePathname();
   const onStatistics = pathname?.startsWith("/statistics");
   const onUsers = pathname?.startsWith("/users");
+  const onAIModels = pathname?.startsWith("/aiModels");
 
   const { setMessages, setCurrentThreadId, clearMessages } = useChatStore();
 
@@ -206,6 +214,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
     `}</style>
   );
 
+  // ESC để đóng menu & modal
   useEffect(() => {
     const onEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -219,6 +228,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
     return () => window.removeEventListener("keydown", onEsc);
   }, [isMenuOpen, onClose]);
 
+  // Fetch lịch sử khi mở menu
   useEffect(() => {
     if (!isMenuOpen) return;
     let cancelled = false;
@@ -276,10 +286,12 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
     setRenameItem(item);
     setRenameText(item.name);
   };
+
   const openDelete = (item: HistoryItem) => {
     setOpenMenuId(null);
     setConfirmDel(item);
   };
+
   const submitRename = async () => {
     const name = renameText.trim();
     if (!renameItem || !name || name === renameItem.name) {
@@ -291,6 +303,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
     );
     setRenameItem(null);
   };
+
   const submitDelete = async () => {
     if (!confirmDel) return;
     setHistory((h) => h.filter((x) => x.id !== confirmDel.id));
@@ -331,7 +344,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
             ☰
           </button>
 
-          {(onStatistics || onUsers) && (
+          {(onStatistics || onUsers || onAIModels) && (
             <Link
               href="/"
               className="hidden sm:inline-block px-2 py-1 rounded-md bg-white/40 hover:bg-white/70 transition text-xs sm:text-sm whitespace-nowrap"
@@ -445,6 +458,15 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
                     Quản lý người dùng
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/aiModels"
+                    onClick={onClose}
+                    className="block no-underline font-bold text-black hover:underline transition"
+                  >
+                    Quản lý Model AI
+                  </Link>
+                </li>
               </>
             )}
 
@@ -475,7 +497,8 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
             </div>
           ) : histErr ? (
             <div className="text-sm text-red-700">
-              bạn chưa đăng nhập!<p>{histErr}</p>
+              bạn chưa đăng nhập!
+              <p>{histErr}</p>
             </div>
           ) : history.length === 0 ? (
             <div className="text-sm text-[var(--muted)]">Chưa có lịch sử</div>
@@ -486,24 +509,15 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
                   <div className="relative group">
                     <button
                       onClick={() => handleOpenChat(item.id)}
-                      className="
-                        w-full text-left h-14
-                        rounded-2xl px-4 pr-12
+                      className="w-full text-left h-14 rounded-2xl px-4 pr-12
                         flex flex-col justify-center transition
                         bg-transparent border border-transparent shadow-none
-
-                        group-hover:bg-white/30
-                        group-hover:backdrop-blur-md
-                        group-hover:border-white/20
-                        group-hover:shadow-md
+                        group-hover:bg-white/30 group-hover:backdrop-blur-md
+                        group-hover:border-white/20 group-hover:shadow-md
                         group-hover:ring-1 group-hover:ring-white/20
-
-                        focus-visible:bg-white/30
-                        focus-visible:backdrop-blur-md
-                        focus-visible:border-white/30
-                        focus-visible:shadow-lg
-                        focus-visible:ring-1 focus-visible:ring-white/30
-                      "
+                        focus-visible:bg-white/30 focus-visible:backdrop-blur-md
+                        focus-visible:border-white/30 focus-visible:shadow-lg
+                        focus-visible:ring-1 focus-visible:ring-white/30"
                     >
                       <p className="text-sm font-medium text-[var(--fg)] truncate">
                         {item.name}
@@ -521,17 +535,14 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
                           cur === item.id ? null : item.id
                         );
                       }}
-                      className="
-                        absolute right-2 top-1/2 -translate-y-1/2
+                      className="absolute right-2 top-1/2 -translate-y-1/2
                         h-8 w-8 flex items-center justify-center
                         rounded-full text-[var(--fg)]/80 transition
                         opacity-0 pointer-events-none
-
                         group-hover:opacity-100 group-hover:pointer-events-auto
                         focus-visible:opacity-100 focus-visible:pointer-events-auto
                         hover:bg-white/40 hover:backdrop-blur-md
-                        border border-transparent hover:border-white/30
-                      "
+                        border border-transparent hover:border-white/30"
                       aria-haspopup="menu"
                       aria-expanded={openMenuId === item.id}
                       aria-label="Mở menu"
@@ -542,12 +553,10 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
                     {openMenuId === item.id && (
                       <div
                         role="menu"
-                        className="
-                          absolute right-2 top-[calc(50%+20px)]
+                        className="absolute right-2 top-[calc(50%+20px)]
                           z-[99] w-44 rounded-xl
                           border border-white/30 bg-white/80 backdrop-blur-md
-                          shadow-lg overflow-hidden
-                        "
+                          shadow-lg overflow-hidden"
                       >
                         <button
                           className="w-full text-left text-sm px-3 py-2 hover:bg-white/60"
