@@ -16,7 +16,7 @@ interface AIModel {
 
 interface Message {
   id: string;
-  role: "user" | "assistant";
+  isAdmin: boolean;
   content: string;
   modelId?: string;
   modelName?: string;
@@ -110,132 +110,92 @@ export default function AnswerDisplay({
         </div>
       )}
 
-      {messages.map((msg, index) => {
-        // --- LOGIC QUAN TRỌNG: XÁC ĐỊNH USER HAY AI ---
-        const isUser = msg.role === "user"; // Nếu role là 'user' thì đúng là User
-        const modelName = !isUser ? resolveModelName(msg) : undefined;
-        const displayContent = isUser ? msg.content : preprocessContent(msg.content);
-        
-        // Kiểm tra xem có đang stream không (cho tin nhắn cuối cùng của AI)
-        const isStreaming = !isUser && isLoading && index === messages.length - 1;
+     {messages.map((msg, index) => {
+  // Xác định AI hay User dựa trên modelId
+  const isAi = !!msg.modelId;      // có modelId => tin nhắn AI
+  const isUser = !isAi;            // không có modelId => câu hỏi của user
 
-        return (
-          <div
-            key={msg.id}
-            className={`w-full flex ${
-              isUser ? "justify-end" : "justify-start"
-            }`}
-          >
-            <div
-              className={[
-                "relative group",
-                "w-fit max-w-[98%] sm:max-w-[90%] lg:max-w-[85%]",
-                "px-5 py-3 rounded-2xl shadow-sm leading-relaxed text-[15px]",
-                // NẾU LÀ USER: Màu xanh (Green), căn phải, bo góc khác
-                isUser
-                  ? "bg-[#DCF8C6] text-gray-900 rounded-tr-sm ml-auto"
-                  // NẾU LÀ AI: Màu trắng (White), căn trái, có viền
-                  : "bg-white text-gray-900 border border-gray-200 rounded-tl-sm mr-auto",
-              ].join(" ")}
-            >
-              {/* --- TÊN AI (Chỉ hiện nếu KHÔNG PHẢI là User) --- */}
-              {!isUser && (
-                <div className="text-xs font-semibold text-gray-500 mb-2 select-none flex items-center justify-between">
-                  <span>{modelName || "AI"}</span>
-                  {isStreaming && (
-                    <span className="ml-2 w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  )}
-                </div>
-              )}
+  const modelName = isAi ? resolveModelName(msg) : undefined;
+  const displayContent = isAi
+    ? preprocessContent(msg.content)
+    : msg.content;
 
-              {/* --- NỘI DUNG TIN NHẮN --- */}
-              <div className={`markdown-content break-words overflow-hidden ${isStreaming ? "result-streaming" : ""}`}>
-                {isUser ? (
-                  // User: Text thường
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
-                ) : (
-                  // AI: Render Markdown + Math
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                    components={{
-                      code: ({ node, className, children, ...props }: any) => {
-                        const match = /language-(\w+)/.exec(className || "");
-                        const isInline = !match && !String(children).includes("\n");
-                        if (isInline) {
-                          return (
-                            <code className="px-1.5 py-0.5 rounded bg-gray-100 text-red-500 font-mono text-sm border border-gray-200 mx-0.5" {...props}>
-                              {children}
-                            </code>
-                          );
-                        }
-                        return (
-                          <div className="my-3 rounded-lg border border-gray-200 bg-gray-900 overflow-hidden">
-                            <div className="px-3 py-1 bg-gray-800 text-xs text-gray-400 border-b border-gray-700 flex justify-between items-center">
-                              <span>{match?.[1] || "code"}</span>
-                            </div>
-                            <div className="overflow-x-auto p-3">
-                              <code className="font-mono text-sm text-gray-50 block" {...props}>
-                                {children}
-                              </code>
-                            </div>
-                          </div>
-                        );
-                      },
-                      p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-7" {...props} />,
-                      table: ({ node, ...props }) => (
-                        <div className="overflow-x-auto my-3 rounded-lg border border-gray-200">
-                          <table className="w-full border-collapse bg-gray-50 text-left text-sm" {...props} />
-                        </div>
-                      ),
-                      thead: ({ node, ...props }) => (
-                        <thead className="bg-gray-100 border-b border-gray-200 font-semibold text-gray-700" {...props} />
-                      ),
-                      tbody: ({ node, ...props }) => (
-                        <tbody className="divide-y divide-gray-200 bg-white" {...props} />
-                      ),
-                      tr: ({ node, ...props }) => (
-                        <tr className="hover:bg-gray-50 transition-colors" {...props} />
-                      ),
-                      th: ({ node, ...props }) => (
-                        <th className="px-4 py-2 whitespace-nowrap" {...props} />
-                      ),
-                      td: ({ node, ...props }) => (
-                        <td className="px-4 py-2 align-top" {...props} />
-                      ),
-                      a: ({ node, ...props }) => (
-                        <a className="text-blue-600 hover:underline break-all" target="_blank" rel="noopener noreferrer" {...props} />
-                      ),
-                    }}
-                  >
-                    {displayContent}
-                  </ReactMarkdown>
-                )}
-              </div>
+  // Tin nhắn cuối cùng của AI đang stream
+  const isStreaming = isAi && isLoading && index === messages.length - 1;
 
-              {/* --- NÚT COPY (Chỉ hiện nếu KHÔNG PHẢI là User) --- */}
-              {!isUser && !isStreaming && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(msg.id, msg.content)}
-                    title={copiedId === msg.id ? "Đã copy" : "Sao chép"}
-                    className="absolute top-2 right-2 p-1.5 rounded-md bg-white/80 hover:bg-white shadow-sm border border-gray-200 text-gray-500 hover:text-gray-900 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200"
-                  >
-                    <Copy size={14} strokeWidth={2} />
-                  </button>
-                  <div className={`pointer-events-none absolute -top-8 right-0 text-[10px] px-2 py-1 rounded bg-black/80 text-white shadow transition-opacity duration-200 ${copiedId === msg.id ? "opacity-100" : "opacity-0"}`}>
-                    Đã copy!
-                  </div>
-                </>
-              )}
-            </div>
+  return (
+    <div
+      key={msg.id}
+      className={`w-full flex ${
+        isUser ? "justify-end" : "justify-start"
+      }`}
+    >
+      <div
+        className={[
+          "relative group",
+          "w-fit max-w-[98%] sm:max-w-[90%] lg:max-w-[85%]",
+          "px-5 py-3 rounded-2xl shadow-sm leading-relaxed text-[15px]",
+          isUser
+            ? "bg-[#DCF8C6] text-gray-900 rounded-tr-sm ml-auto"
+            : "bg-white text-gray-900 border border-gray-200 rounded-tl-sm mr-auto",
+        ].join(" ")}
+      >
+        {/* Tên model cho AI */}
+        {!isUser && (
+          <div className="text-xs font-semibold text-gray-500 mb-2 select-none flex items-center justify-between">
+            <span>{modelName || "AI"}</span>
+            {isStreaming && (
+              <span className="ml-2 w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            )}
           </div>
-        );
-      })}
+        )}
+
+        {/* Nội dung */}
+        <div
+          className={`markdown-content break-words overflow-hidden ${
+            isStreaming ? "result-streaming" : ""
+          }`}
+        >
+          {isUser ? (
+            <div className="whitespace-pre-wrap">{msg.content}</div>
+          ) : (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeKatex]}
+            >
+              {displayContent}
+            </ReactMarkdown>
+          )}
+        </div>
+
+        {/* Nút copy chỉ cho AI */}
+        {!isUser && !isStreaming && (
+          <>
+            <button
+              type="button"
+              onClick={() => handleCopy(msg.id, msg.content)}
+              title={copiedId === msg.id ? "Đã copy" : "Sao chép"}
+              className="absolute top-2 right-2 p-1.5 rounded-md bg-white/80 hover:bg-white shadow-sm border border-gray-200 text-gray-500 hover:text-gray-900 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200"
+            >
+              <Copy size={14} strokeWidth={2} />
+            </button>
+            <div
+              className={`pointer-events-none absolute -top-8 right-0 text-[10px] px-2 py-1 rounded bg-black/80 text-white shadow transition-opacity duration-200 ${
+                copiedId === msg.id ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              Đã copy!
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+})}
+
 
       {/* Loading khi chưa có phản hồi nào */}
-      {isLoading && messages.length > 0 && messages[messages.length - 1].role === "user" && (
+      {isLoading && messages.length > 0 && !messages[messages.length - 1].isAdmin && (
         <div className="w-full flex justify-start">
           <div className="w-fit bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
             <span className="text-gray-500 text-sm font-medium flex items-center gap-2">

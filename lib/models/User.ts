@@ -1,5 +1,5 @@
 // lib/models/User.ts
-import { Schema, model, models, type Document, type Model } from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IUser extends Document {
   clerkId: string;
@@ -20,8 +20,7 @@ const UserSchema = new Schema<IUser>(
     isAdmin: {
       type: Boolean,
       required: true,
-      default: false,
-      enum: [0, 1],
+      default: false, 
     },
   },
   {
@@ -30,7 +29,9 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-const User: Model<IUser> =
-  (models.User as Model<IUser>) || model<IUser>("User", UserSchema);
+// ép kiểu rõ ràng
+const UserModel: Model<IUser> =
+  (mongoose.models.User as Model<IUser>) ||
+  mongoose.model<IUser>("User", UserSchema);
 
-export default User;
+export default UserModel;

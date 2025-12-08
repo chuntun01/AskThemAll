@@ -4,6 +4,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import type { Message as ChatMessage } from "@/lib/store/chat";
+
 import {
   SignInButton,
   SignUpButton,
@@ -27,13 +29,6 @@ type HistoryItem = {
   name: string;
   href: string;
   updatedAt?: number;
-};
-
-type ChatMessage = {
-  id: string;
-  isAdmin: boolean;
-  content: string;
-  modelId?: string;
 };
 
 const formatTime = (ms?: number) => {
@@ -100,6 +95,8 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   const [roleError, setRoleError] = useState<string | null>(null);
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
+  const { isLoaded, isSignedIn, user } = useUser();
+
   // fetch role từ DB
   useEffect(() => {
     console.log(
@@ -123,9 +120,9 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
 
           console.log("NavMenu: Fetch status:", res.status);
 
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-          }
+          // if (!res.ok) {
+          //   throw new Error(`HTTP ${res.status}`);
+          // }
 
           const data = await res.json();
           console.log("NavMenu: DB response:", data);
@@ -255,25 +252,27 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   }, [isMenuOpen]);
 
   const handleOpenChat = async (threadId: string) => {
-    try {
-      const res = await fetch(`/api/chat-history/${threadId}`, {
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data: { id: string; messages: ChatMessage[] } = await res.json();
+  try {
+    const res = await fetch(`/api/chat-history/${threadId}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(await res.text());
 
-      setMessages(Array.isArray(data.messages) ? data.messages : []);
-      setCurrentThreadId(data.id);
-      onClose();
-      if (pathname !== "/") router.push("/");
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        setHistErr(e.message);
-      } else {
-        setHistErr("Không mở được đoạn chat này.");
-      }
+    const data: { id: string; messages: ChatMessage[] } = await res.json();
+
+    setMessages(Array.isArray(data.messages) ? data.messages : []);
+    setCurrentThreadId(data.id);
+
+    onClose();
+    if (pathname !== "/") router.push("/");
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      setHistErr(e.message);
+    } else {
+      setHistErr("Không mở được đoạn chat này.");
     }
-  };
+  }
+};
 
   const handleNewChat = () => {
     clearMessages();
@@ -326,11 +325,9 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
         </div>
       )}
 
-      {/* --- START NAVBAR LAYOUT CHANGE --- */}
-      {/* Sử dụng Grid 3 cột để chia bố cục: Trái - Giữa - Phải */}
+      {/* NAVBAR GRID 3 CỘT */}
       <div className="w-full h-14 md:h-16 px-4 md:px-6 grid grid-cols-3 items-center">
-        
-        {/* LEFT: Menu Button & Back Button */}
+        {/* LEFT: Menu + Back */}
         <div className="flex items-center gap-2 justify-start">
           <button
             onClick={onMenuClick}
@@ -355,23 +352,21 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
           )}
         </div>
 
-        {/* CENTER: Logo / Title */}
+        {/* CENTER: Title */}
         <div className="flex items-center justify-center">
           <h1 className="text-lg md:text-xl font-bold tracking-tight whitespace-nowrap cursor-default">
             Ask Them All
           </h1>
         </div>
 
-        {/* RIGHT: Model Selector + Profile */}
+        {/* RIGHT: Model selector + profile */}
         <div className="flex items-center justify-end gap-3">
-          {/* Model Selector (Chỉ hiện trên desktop) */}
           {modelSelector && (
             <div className="hidden md:flex min-w-[140px] justify-end">
               {modelSelector}
             </div>
           )}
 
-          {/* User / Auth Buttons */}
           <div className="flex items-center gap-2">
             <SignedOut>
               <SignInButton />
@@ -382,18 +377,17 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
               </SignUpButton>
             </SignedOut>
             <SignedIn>
-              <UserButton 
-                 appearance={{
+              <UserButton
+                appearance={{
                   elements: {
-                    userButtonAvatarBox: "w-9 h-9 sm:w-10 sm:h-10"
-                  }
+                    userButtonAvatarBox: "w-9 h-9 sm:w-10 sm:h-10",
+                  },
                 }}
               />
             </SignedIn>
           </div>
         </div>
       </div>
-      {/* --- END NAVBAR LAYOUT CHANGE --- */}
 
       {/* Overlay */}
       <div
@@ -596,7 +590,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
                 Hủy bỏ
               </button>
               <button
-                className="px-4 h-10 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                className="px-4 h-10 rounded-lg bg-red-600 text:white hover:bg-red-700"
                 onClick={submitDelete}
               >
                 Xoá

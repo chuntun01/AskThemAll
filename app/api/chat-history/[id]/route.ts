@@ -13,7 +13,7 @@ export async function GET(
   try {
     await connectDB();
 
-    // Bây giờ dòng này sẽ hoạt động bình thường
+ 
     const {id} = params;
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {

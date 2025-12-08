@@ -125,7 +125,7 @@ export default function Home() {
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
-      isAdmin: false,
+      role: "assistant", 
       content: q,
     };
     addMessage(userMsg);
@@ -167,7 +167,6 @@ export default function Home() {
           : [
               {
                 id: crypto.randomUUID(),
-                isAdmin: false,
                 content: "Mình chưa nhận được trả lời từ server.",
               } as Message,
             ]),
