@@ -1,7 +1,7 @@
-import { Webhook } from "svix";
-import { headers } from "next/headers";
-import { NextResponse } from "next/server";
-import { upsertUser } from "@/lib/actions/user.actions";
+import {Webhook} from "svix";
+import {headers} from "next/headers";
+import {NextResponse} from "next/server";
+import {upsertUser} from "@/lib/actions/userDb.action";
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const svix_signature = headerPayload.get("svix-signature");
 
   if (!svix_id || !svix_timestamp || !svix_signature) {
-    return new Response("Error: Missing svix headers", { status: 400 });
+    return new Response("Error: Missing svix headers", {status: 400});
   }
 
   // Đọc REQUEST DƯỚI DẠNG VĂN BẢN THÔ
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   console.log(`✅ Webhook received: ${eventType}`);
 
   if (eventType === "user.created") {
-    const { id, email_addresses, image_url, username } = evt.data;
+    const {id, email_addresses, image_url, username} = evt.data;
 
     // Kiểm tra email
     if (
@@ -73,17 +73,17 @@ export async function POST(req: Request) {
         `✨ User ${updatedUser.username} was successfully saved to DB.`
       );
       return NextResponse.json(
-        { success: true, user: updatedUser },
-        { status: 201 }
+        {success: true, user: updatedUser},
+        {status: 201}
       );
     } catch (error) {
       console.error("❌ DB Error:", error.message);
       return NextResponse.json(
-        { success: false, message: "Database error" },
-        { status: 500 }
+        {success: false, message: "Database error"},
+        {status: 500}
       );
     }
   }
 
-  return NextResponse.json({ success: true, message: "Event not handled" });
+  return NextResponse.json({success: true, message: "Event not handled"});
 }

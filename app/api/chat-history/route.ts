@@ -1,54 +1,62 @@
 // app/api/chat-history/route.ts
-import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import {
-  getChatHistoryByUserId,
-  getAllChatHistory,
-} from "@/lib/actions/chat.actions";
-import { getUserByClerkId } from "@/lib/actions/user.actions"; // Import hàm kiểm tra user
+import {NextRequest, NextResponse} from "next/server";
+import connectDB from "@/lib/db";
+import Question from "@/lib/models/Question";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+type HistoryItem = {
+  id: string;
+  name: string;
+  href: string;
+  updatedAt?: number;
+};
+
+export async function GET(_req: NextRequest) {
   try {
-    const { userId: clerkID } = await auth();
-    if (!clerkID) {
-      console.error("Authorization failed: clerkID is null.");
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    await connectDB();
+
+    // Lấy ~50 câu hỏi mới nhất để build lịch sử
+    const questions = await Question.find({})
+      .sort({createDate: -1}) // hoặc createdAt nếu schema dùng timestamps
+      .limit(50)
+      .lean();
+
+    const threads = new Map<string, {name: string; updatedAt: number}>();
+
+    for (const q of questions) {
+      const threadKey = q.threadId ? String(q.threadId) : String(q._id);
+
+      const updatedAtMs = q.createDate
+        ? new Date(q.createDate).getTime()
+        : Date.now();
+
+      const name =
+        typeof q.question === "string" && q.question.trim()
+          ? q.question.trim().slice(0, 80)
+          : "Cuộc trò chuyện";
+
+      const existing = threads.get(threadKey);
+      if (!existing || existing.updatedAt < updatedAtMs) {
+        threads.set(threadKey, {name, updatedAt: updatedAtMs});
+      }
     }
 
-    // Lấy thông tin user từ DB để kiểm tra role
-    const currentUser = await getUserByClerkId(clerkID);
+    const items: HistoryItem[] = Array.from(threads.entries())
+      .sort((a, b) => b[1].updatedAt - a[1].updatedAt)
+      .map(([id, v]) => ({
+        id,
+        name: v.name,
+        href: `/api/chat-history/${id}`,
+        updatedAt: v.updatedAt,
+      }));
 
-    let history;
-    if (currentUser?.role === "admin") {
-      // Nếu là admin, lấy toàn bộ lịch sử
-      history = await getAllChatHistory();
-    } else {
-      // Nếu là member, chỉ lấy lịch sử của chính họ
-      history = await getChatHistoryByUserId(clerkID);
-    }
-
-    // Trả về dữ liệu dưới dạng mảng `HistoryItem[]` mà NavMenu đang mong đợi
-    // Giả sử mỗi item trong history có trường 'id', 'name', 'updatedAt'
-    const formattedHistory = history.map(
-      (item: {
-        createDate: string | number | Date;
-        _id: { toString: () => Error };
-        question: Error;
-        updatedAt: string | number | Date;
-      }) => ({
-        id: item._id.toString(),
-        name: item.question, // Giả sử tiêu đề cuộc trò chuyện nằm trong trường 'title'
-        href: `/chat/${item._id}`,
-        createDate: new Date(item.createDate).getTime(),
-      })
-    );
-
-    return NextResponse.json(formattedHistory); // Trả về dữ liệu đã được định dạng
-  } catch (error) {
-    console.error("API /chat-history Error:", error);
+    return NextResponse.json(items, {status: 200});
+  } catch (err) {
+    console.error("GET /api/chat-history error:", err);
     return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 }
+      {message: "Không lấy được danh sách lịch sử"},
+      {status: 500}
     );
   }
 }

@@ -1,27 +1,26 @@
-import mongoose, {Schema, Document, Model} from "mongoose";
+// lib/models/User.ts
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IUser extends Document {
   clerkId: string;
   username: string;
   email: string;
   avatarUrl?: string;
-  role: "member" | "admin";
+  isAdmin: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-// Định nghĩa schema
 const UserSchema = new Schema<IUser>(
   {
-    clerkId: {type: String, required: true, unique: true},
-    username: {type: String, required: true},
-    email: {type: String, required: true, unique: true},
-    avatarUrl: {type: String},
-    role: {
-      type: String,
+    clerkId: { type: String, required: true, unique: true },
+    username: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    avatarUrl: { type: String },
+    isAdmin: {
+      type: Boolean,
       required: true,
-      default: "member",
-      enum: ["member", "admin"],
+      default: false, 
     },
   },
   {
@@ -30,8 +29,9 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-// ✅ Rất quan trọng: ép kiểu rõ ràng để tránh lỗi overload union
-const User: Model<IUser> =
-  mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+// ép kiểu rõ ràng
+const UserModel: Model<IUser> =
+  (mongoose.models.User as Model<IUser>) ||
+  mongoose.model<IUser>("User", UserSchema);
 
-export default User;
+export default UserModel;

@@ -1,26 +1,53 @@
 // app/api/user-role/route.ts
-import { auth } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
-import { getUserByClerkId } from '@/lib/actions/user.actions';
+import { NextRequest, NextResponse } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
+import { getUserByClerkId } from "@/lib/actions/userDb.action";
 
-export const dynamic = 'force-dynamic'; // Bắt buộc route luôn chạy ở chế độ động
+export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = getAuth(req);
 
-    // Dòng này gây ra lỗi 401 nếu server không xác thực được bạn
+    // Không trả 401 nữa, luôn 200 để client dễ xử lý
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized: No user ID found in session' }, { status: 401 });
+      return NextResponse.json(
+        {
+          isAdmin: false,
+          message: "Unauthenticated",
+        },
+        { status: 200 }
+      );
     }
 
     const user = await getUserByClerkId(userId);
-    const role = user?.role || 'member'; 
 
-    return NextResponse.json({ role });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('API /user-role Error:', errorMessage);
-    return NextResponse.json({ role: 'member' }, { status: 500 });
+    if (!user) {
+      return NextResponse.json(
+        {
+          isAdmin: false,
+          message: "User not found in DB",
+        },
+        { status: 200 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        isAdmin: !!user.isAdmin,
+        username: user.username,
+        email: user.email,
+      },
+      { status: 200 }
+    );
+  } catch (err: unknown) {
+    console.error("API /user-role error:", err);
+    return NextResponse.json(
+      {
+        isAdmin: false,
+        message: "Server error",
+      },
+      { status: 200 }
+    );
   }
 }
