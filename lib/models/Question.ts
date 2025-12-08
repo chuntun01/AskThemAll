@@ -24,7 +24,7 @@ const QuestionSchema = new Schema<IQuestion>(
   }
 );
 
-// ✅ Ép kiểu chính xác ở đây
+//  Ép kiểu 
 const Question: Model<IQuestion> =
   (models.Question as Model<IQuestion>) || model<IQuestion>("Question", QuestionSchema);
 

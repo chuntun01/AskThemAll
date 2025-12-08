@@ -1,21 +1,22 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import React, {useState, useEffect} from "react";
-import {useUser} from "@clerk/nextjs";
+import React, { useState, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
 import NavbarMenu from "../components/NavMenu";
-import UserModal from "../components/UserModal";
+import AiModelModal from "../components/AiModelModal";
 
 import {
-  fetchUsers,
-  createUser,
-  updateUser,
-  deleteUser,
-  type UserProfile,
-  type UserFormValues,
-} from "@/lib/actions/user.action";
-export default function UsersPage() {
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  fetchAIModels,
+  createAIModel,
+  updateAIModel,
+  deleteAIModel,
+  type AIModel,
+  type AIModelFormValues,
+} from "@/lib/actions/model.action";
+
+export default function AimodelsPage() {
+  const [aimodels, setAIModels] = useState<AIModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -24,19 +25,19 @@ export default function UsersPage() {
   // popup
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [modalInitial, setModalInitial] = useState<UserProfile | null>(null);
+  const [modalInitial, setModalInitial] = useState<AIModel | null>(null);
 
-  const {isLoaded, isSignedIn} = useUser();
+  const { isLoaded, isSignedIn } = useUser();
 
   // Lấy dữ liệu
   const loadModels = async () => {
     try {
       setIsLoading(true);
-      const data = await fetchUsers();
-      setUsers(data);
+      const data = await fetchAIModels();
+      setAIModels(data);
       setError(null);
     } catch (err: any) {
-      setError(err.message || "Không thể tải danh sách users.");
+      setError(err.message || "Không thể tải danh sách models.");
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +48,7 @@ export default function UsersPage() {
       loadModels();
     } else if (isLoaded && !isSignedIn) {
       setIsLoading(false);
-      setUsers([]);
+      setAIModels([]);
     }
   }, [isLoaded, isSignedIn]);
 
@@ -59,7 +60,7 @@ export default function UsersPage() {
   };
 
   // mở popup sửa cho 1 model cụ thể
-  const handleOpenEditFor = (model: UserProfile) => {
+  const handleOpenEditFor = (model: AIModel) => {
     setSelectedId(model.id);
     setModalMode("edit");
     setModalInitial(model);
@@ -67,39 +68,41 @@ export default function UsersPage() {
   };
 
   // submit popup
-  const handleSubmitModal = async (values: UserFormValues) => {
+  const handleSubmitModal = async (values: AIModelFormValues) => {
     if (modalMode === "create") {
-      await createUser(values);
+      await createAIModel(values);
     } else if (modalMode === "edit" && modalInitial) {
-      await updateUser(modalInitial.id, values);
+      await updateAIModel(modalInitial.id, values);
     }
     await loadModels();
   };
 
   // xoá 1 model cụ thể
   const handleDeleteFor = async (id: string) => {
-    if (!window.confirm("Bạn chắc chắn muốn xoá user này?")) return;
+    if (!window.confirm("Bạn chắc chắn muốn xoá model này?")) return;
     try {
-      await deleteUser(id);
+      await deleteAIModel(id);
       if (selectedId === id) setSelectedId(null);
       await loadModels();
     } catch (err: any) {
-      setError(err.message || "Không thể xoá user.");
+      setError(err.message || "Không thể xoá model.");
     }
   };
 
   if (!isLoaded || isLoading) {
-    return <div style={{padding: "2rem"}}>Đang tải...</div>;
+    return <div style={{ padding: "2rem" }}>Đang tải...</div>;
   }
 
   if (!isSignedIn) {
     return (
-      <div style={{padding: "2rem"}}>Vui lòng đăng nhập để xem thông tin.</div>
+      <div style={{ padding: "2rem" }}>
+        Vui lòng đăng nhập để xem thông tin.
+      </div>
     );
   }
 
   const selectedModel = selectedId
-    ? users.find((m) => m.id === selectedId) || null
+    ? aimodels.find((m) => m.id === selectedId) || null
     : null;
 
   return (
@@ -129,7 +132,7 @@ export default function UsersPage() {
           }}
         >
           <div>
-            <h2 style={{margin: 0}}>Danh sách User</h2>
+            <h2 style={{ margin: 0 }}>Danh sách AI Models</h2>
             {selectedModel && (
               <p
                 style={{
@@ -138,7 +141,7 @@ export default function UsersPage() {
                   color: "#444",
                 }}
               >
-                Đang chọn: {selectedModel.username}
+                Đang chọn: {selectedModel.displayName}
               </p>
             )}
             {error && (
@@ -154,7 +157,7 @@ export default function UsersPage() {
             )}
           </div>
 
-          <div style={{display: "flex", gap: "0.5rem"}}>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
               onClick={handleOpenCreate}
               style={{
@@ -167,7 +170,21 @@ export default function UsersPage() {
                 fontSize: "0.9rem",
               }}
             >
-              + Thêm user
+              + Thêm model
+            </button>
+            <button
+              onClick={loadModels}
+              style={{
+                padding: "0.4rem 0.8rem",
+                borderRadius: "6px",
+                border: "none",
+                background: "#0284c7",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: "0.9rem",
+              }}
+            >
+              🔄 Đồng bộ
             </button>
           </div>
         </div>
@@ -181,18 +198,18 @@ export default function UsersPage() {
             gap: "1rem",
           }}
         >
-          {users.map((user) => (
+          {aimodels.map((model) => (
             <div
-              key={user.id}
-              onClick={() => setSelectedId(user.id)}
+              key={model.id}
+              onClick={() => setSelectedId(model.id)}
               style={{
                 border: "1px solid #e0e0e0",
                 borderRadius: "12px",
                 padding: "1rem 1.25rem",
-                background: selectedId === user.id ? "#f0f9ff" : "#fff",
+                background: selectedId === model.id ? "#f0f9ff" : "#fff",
                 cursor: "pointer",
                 boxShadow:
-                  selectedId === user.id
+                  selectedId === model.id
                     ? "0 0 0 2px rgba(59,130,246,0.3)"
                     : "0 1px 3px rgba(0,0,0,0.05)",
               }}
@@ -206,9 +223,7 @@ export default function UsersPage() {
                 }}
               >
                 {/* BÊN TRÁI: avatar + info */}
-                <div
-                  style={{display: "flex", alignItems: "center", gap: "1rem"}}
-                >
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div
                     style={{
                       width: "52px",
@@ -223,7 +238,7 @@ export default function UsersPage() {
                       fontWeight: 600,
                     }}
                   >
-                    {user.avatarUrl || "AI"}
+                    {model.provider || "AI"}
                   </div>
                   <div>
                     <p
@@ -234,20 +249,21 @@ export default function UsersPage() {
                         fontSize: "1.1rem",
                       }}
                     >
-                      {user.username}
+                      {model.displayName}
                     </p>
-                    <p style={{margin: 0, fontSize: "0.9rem"}}>
-                      <strong style={{color: "#000000"}}>User ID:</strong>{" "}
-                      {user.id}
+                    <p style={{ margin: 0, fontSize: "0.9rem" }}>
+                      <strong style={{ color: "#000000" }}>Model ID:</strong>{" "}
+                      {model.modelId}
                     </p>
-                    <p style={{margin: 0, fontSize: "0.9rem"}}>
-                      <strong style={{color: "#000000"}}>quyền:</strong>{" "}
-                      <span style={{color: "#000000"}}>
-                        {user.isAdmin ? "admin" : "member"}
+                    <p style={{ margin: 0, fontSize: "0.9rem" }}>
+                      <strong style={{ color: "#000000" }}>Miễn phí?:</strong>{" "}
+                      <span style={{ color: "#000000" }}>
+                        {model.isFree ? "Có" : "Không"}
                       </span>
                     </p>
                   </div>
                 </div>
+
                 {/* BÊN PHẢI: nút SỬA / XOÁ (ô đỏ) */}
                 <div
                   style={{
@@ -259,7 +275,7 @@ export default function UsersPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation(); // không trigger chọn card
-                      handleOpenEditFor(user);
+                      handleOpenEditFor(model);
                     }}
                     style={{
                       padding: "0.35rem 0.7rem",
@@ -276,7 +292,7 @@ export default function UsersPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeleteFor(user.id);
+                      handleDeleteFor(model.id);
                     }}
                     style={{
                       padding: "0.35rem 0.7rem",
@@ -295,14 +311,14 @@ export default function UsersPage() {
             </div>
           ))}
 
-          {users.length === 0 && (
-            <p style={{color: "#555"}}>Chưa có user nào.</p>
+          {aimodels.length === 0 && (
+            <p style={{ color: "#555" }}>Chưa có AI model nào.</p>
           )}
         </div>
       </div>
 
       {/* Popup thêm / sửa */}
-      <UserModal
+      <AiModelModal
         open={modalOpen}
         mode={modalMode}
         initialData={modalInitial}
