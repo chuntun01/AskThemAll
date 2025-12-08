@@ -19,11 +19,10 @@ export async function askOpenRouter(questionContent, modelId) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        // Đây chính là "cấu trúc chung" mà bạn muốn.
-        // Mọi AI model trên OpenRouter đều dùng chung cấu trúc này.
-        "model": modelId, // Tên model cụ thể, ví dụ: "google/gemma-7b-it"
+        // "cấu trúc chung" 
+        "model": modelId, 
         "messages": [
-          { "role": "user", "content": questionContent }
+          { "role": "user", "content": questionContent}
         ]
       })
     });

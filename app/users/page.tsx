@@ -1,88 +1,106 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
-import NavbarMenu from "../components/NavMenu"; // SỬA: Thêm import
+import React, {useState, useEffect} from "react";
+import {useUser} from "@clerk/nextjs";
+import NavbarMenu from "../components/NavMenu";
+import UserModal from "../components/UserModal";
 
-interface UserProfile {
-  _id: string;
-  clerkId: string;
-  username: string;
-  email: string;
-  role: "member" | "admin";
-  avatarUrl: string;
-  createdAt: string;
-}
-
-interface HistoryItem {
-  // Giả định type cho historyItems (thay bằng type thực tế của bạn)
-  id: string;
-  title: string;
-  timestamp: string;
-}
-
+import {
+  fetchUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  type UserProfile,
+  type UserFormValues,
+} from "@/lib/actions/user.action";
 export default function UsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // SỬA: Thêm state cho menu
-  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]); // SỬA: Thêm state cho history
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { isLoaded, isSignedIn, user } = useUser(); // Lấy user để check role
+  // popup
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [modalInitial, setModalInitial] = useState<UserProfile | null>(null);
+
+  const {isLoaded, isSignedIn} = useUser();
+
+  // Lấy dữ liệu
+  const loadModels = async () => {
+    try {
+      setIsLoading(true);
+      const data = await fetchUsers();
+      setUsers(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || "Không thể tải danh sách users.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      async function fetchUsers() {
-        try {
-          const response = await fetch("/api/users");
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(
-              errorData.error || "Không thể tải danh sách người dùng."
-            );
-          }
-          const data = await response.json();
-          setUsers(data.users || []);
-        } catch (err: unknown) {
-          if (err instanceof Error) {
-            setError(err.message);
-          } else {
-            setError("Đã xảy ra lỗi không xác định.");
-          }
-        } finally {
-          setIsLoading(false);
-        }
-      }
-      fetchUsers();
+      loadModels();
     } else if (isLoaded && !isSignedIn) {
       setIsLoading(false);
       setUsers([]);
     }
   }, [isLoaded, isSignedIn]);
 
-  if (!isLoaded || isLoading) {
-    return <div style={{ padding: "2rem" }}>Đang tải...</div>;
-  }
+  // mở popup thêm mới
+  const handleOpenCreate = () => {
+    setModalMode("create");
+    setModalInitial(null);
+    setModalOpen(true);
+  };
 
-  if (error) {
-    return <div style={{ padding: "2rem", color: "red" }}>Lỗi: {error}</div>;
+  // mở popup sửa cho 1 model cụ thể
+  const handleOpenEditFor = (model: UserProfile) => {
+    setSelectedId(model.id);
+    setModalMode("edit");
+    setModalInitial(model);
+    setModalOpen(true);
+  };
+
+  // submit popup
+  const handleSubmitModal = async (values: UserFormValues) => {
+    if (modalMode === "create") {
+      await createUser(values);
+    } else if (modalMode === "edit" && modalInitial) {
+      await updateUser(modalInitial.id, values);
+    }
+    await loadModels();
+  };
+
+  // xoá 1 model cụ thể
+  const handleDeleteFor = async (id: string) => {
+    if (!window.confirm("Bạn chắc chắn muốn xoá user này?")) return;
+    try {
+      await deleteUser(id);
+      if (selectedId === id) setSelectedId(null);
+      await loadModels();
+    } catch (err: any) {
+      setError(err.message || "Không thể xoá user.");
+    }
+  };
+
+  if (!isLoaded || isLoading) {
+    return <div style={{padding: "2rem"}}>Đang tải...</div>;
   }
 
   if (!isSignedIn) {
     return (
-      <div style={{ padding: "2rem" }}>
-        Vui lòng đăng nhập để xem thông tin.
-      </div>
+      <div style={{padding: "2rem"}}>Vui lòng đăng nhập để xem thông tin.</div>
     );
   }
 
-  // SỬA: Dùng role từ user hiện tại (từ DB hoặc Clerk metadata)
-  const isAdmin =
-    user?.publicMetadata?.role === "admin" ||
-    (users[0]?.role === "admin" && users.length > 0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const displayRole = isAdmin ? "admin" : "member";
+  const selectedModel = selectedId
+    ? users.find((m) => m.id === selectedId) || null
+    : null;
 
   return (
     <>
@@ -92,21 +110,72 @@ export default function UsersPage() {
         onClose={() => setIsMenuOpen(false)}
         historyItems={[]}
       />
+
       <div
         style={{
           fontFamily: "sans-serif",
-          maxWidth: "800px",
-          margin: "2rem auto",
-          padding: "0 1rem",
+          maxWidth: "1200px",
+          margin: "6rem auto 2rem",
+          padding: "0 2rem 2rem",
         }}
       >
-        <h1 style={{ marginTop: "200" }}>
-          {isAdmin ? "Quản lý người dùng (Admin)" : "Thông tin cá nhân"}
-        </h1>
-
+        {/* THANH THÔNG TIN + NÚT BÊN PHẢI */}
         <div
           style={{
-            marginTop: "2rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "1rem",
+          }}
+        >
+          <div>
+            <h2 style={{margin: 0}}>Danh sách User</h2>
+            {selectedModel && (
+              <p
+                style={{
+                  margin: "0.25rem 0",
+                  fontSize: "0.9rem",
+                  color: "#444",
+                }}
+              >
+                Đang chọn: {selectedModel.username}
+              </p>
+            )}
+            {error && (
+              <p
+                style={{
+                  margin: "0.25rem 0",
+                  fontSize: "0.85rem",
+                  color: "red",
+                }}
+              >
+                {error}
+              </p>
+            )}
+          </div>
+
+          <div style={{display: "flex", gap: "0.5rem"}}>
+            <button
+              onClick={handleOpenCreate}
+              style={{
+                padding: "0.4rem 0.8rem",
+                borderRadius: "6px",
+                border: "none",
+                background: "#16a34a",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: "0.9rem",
+              }}
+            >
+              + Thêm user
+            </button>
+          </div>
+        </div>
+
+        {/* DANH SÁCH MODEL – mỗi card có nút SỬA / XOÁ bên phải */}
+        <div
+          style={{
+            marginTop: "1rem",
             display: "flex",
             flexDirection: "column",
             gap: "1rem",
@@ -114,44 +183,132 @@ export default function UsersPage() {
         >
           {users.map((user) => (
             <div
-              key={user.clerkId}
+              key={user.id}
+              onClick={() => setSelectedId(user.id)}
               style={{
                 border: "1px solid #e0e0e0",
-                borderRadius: "8px",
-                padding: "1rem",
-                background: "#fff",
+                borderRadius: "12px",
+                padding: "1rem 1.25rem",
+                background: selectedId === user.id ? "#f0f9ff" : "#fff",
+                cursor: "pointer",
+                boxShadow:
+                  selectedId === user.id
+                    ? "0 0 0 2px rgba(59,130,246,0.3)"
+                    : "0 1px 3px rgba(0,0,0,0.05)",
               }}
             >
               <div
-                style={{ display: "flex", alignItems: "center", gap: "1rem" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "1rem",
+                  justifyContent: "space-between",
+                }}
               >
-                <img
-                  src={user.avatarUrl || "/default-avatar.png"}
-                  alt={user.username}
-                  style={{ width: "50px", height: "50px", borderRadius: "50%" }}
-                />
-                <div>
-                  <p
+                {/* BÊN TRÁI: avatar + info */}
+                <div
+                  style={{display: "flex", alignItems: "center", gap: "1rem"}}
+                >
+                  <div
                     style={{
-                      color: "#000000",
-                      margin: 0,
-                      fontWeight: "bold",
-                      fontSize: "1.1rem",
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "50%",
+                      background: "#f5f5f5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "0.8rem",
+                      color: "#555",
+                      fontWeight: 600,
                     }}
                   >
-                    {user.username}
-                  </p>
-                  <p style={{ margin: 0, color: "#000000" }}>{user.email}</p>
-                  <p style={{ margin: 0, fontSize: "0.9rem" }}>
-                    <strong style={{ color: "#000000" }}>Role:</strong>{" "}
-                    <span style={{ color: "#000000" }}>{user.role}</span>
-                  </p>
+                    {user.avatarUrl || "AI"}
+                  </div>
+                  <div>
+                    <p
+                      style={{
+                        color: "#000000",
+                        margin: 0,
+                        fontWeight: "bold",
+                        fontSize: "1.1rem",
+                      }}
+                    >
+                      {user.username}
+                    </p>
+                    <p style={{margin: 0, fontSize: "0.9rem"}}>
+                      <strong style={{color: "#000000"}}>User ID:</strong>{" "}
+                      {user.id}
+                    </p>
+                    <p style={{margin: 0, fontSize: "0.9rem"}}>
+                      <strong style={{color: "#000000"}}>quyền:</strong>{" "}
+                      <span style={{color: "#000000"}}>
+                        {user.isAdmin ? "admin" : "member"}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                {/* BÊN PHẢI: nút SỬA / XOÁ (ô đỏ) */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.4rem",
+                    flexShrink: 0,
+                  }}
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // không trigger chọn card
+                      handleOpenEditFor(user);
+                    }}
+                    style={{
+                      padding: "0.35rem 0.7rem",
+                      borderRadius: "6px",
+                      border: "none",
+                      background: "#f59e0b",
+                      color: "#fff",
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    ✏️ Sửa
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteFor(user.id);
+                    }}
+                    style={{
+                      padding: "0.35rem 0.7rem",
+                      borderRadius: "6px",
+                      border: "none",
+                      background: "#dc2626",
+                      color: "#fff",
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    🗑 Xoá
+                  </button>
                 </div>
               </div>
             </div>
           ))}
+
+          {users.length === 0 && (
+            <p style={{color: "#555"}}>Chưa có user nào.</p>
+          )}
         </div>
       </div>
+
+      {/* Popup thêm / sửa */}
+      <UserModal
+        open={modalOpen}
+        mode={modalMode}
+        initialData={modalInitial}
+        onClose={() => setModalOpen(false)}
+        onSubmit={handleSubmitModal}
+      />
     </>
   );
 }
