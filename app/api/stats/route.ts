@@ -3,24 +3,32 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Question from "@/models/Question";
 import Answer from "@/models/Answer";
+
 const TIMEZONE = "Asia/Ho_Chi_Minh";
 
-function startOfDay(d: string | number | Date) {
+function startOfDay(d) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
   return x;
 }
-function addDays(d: string | number | Date, n: number) {
+
+function addDays(d, n) {
   const x = new Date(d);
   x.setDate(x.getDate() + n);
   return x;
 }
-function parseRange(r: string | null) {
+
+// --- PHẦN ĐÃ SỬA ---
+function parseRange(r) {
+  // Thêm dòng này để hỗ trợ lấy 365 ngày
+  if (r === "year" || r === "365d") return 365;
+  
   return r === "14d" ? 14 : r === "30d" ? 30 : 7;
 }
+// -------------------
 
 // dd-MM-YYYY theo local (tránh ISO UTC lệch ngày)
-function ddmmyyyyLocal(d: Date) {
+function ddmmyyyyLocal(d) {
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const yy = d.getFullYear();
@@ -39,15 +47,16 @@ function prettyName(s = "") {
     .replace(/\bclaude\b/gi, "Claude");
 }
 
-export async function GET(req: { url: string | URL }) {
+export async function GET(req) {
   try {
     await connectDB();
 
     const url = new URL(req.url);
     const range = url.searchParams.get("range");
-    const days = parseRange(range);
+    const days = parseRange(range); // Hàm này giờ đã hiểu 'year' -> 365
 
     const today = startOfDay(new Date()); // 00:00 hôm nay (local)
+    // Lấy lùi về quá khứ (days - 1) ngày
     const from = addDays(today, -(days - 1));
     const until = addDays(today, 1); // 00:00 ngày mai -> bao cả hôm nay
 
@@ -75,6 +84,7 @@ export async function GET(req: { url: string | URL }) {
       { $sort: { _id: 1 } },
     ]);
 
+    // Fill những ngày không có dữ liệu bằng 0
     const qMap = new Map(dailyAgg.map((r) => [r._id, r.count]));
     const daily = Array.from({ length: days }, (_, i) => {
       const d = addDays(from, i);
@@ -117,8 +127,8 @@ export async function GET(req: { url: string | URL }) {
 
     return NextResponse.json({
       totals: { questions: questionsInRange, todayNew },
-      daily, // [{ date: "07-09-2025", questions: 10 }, ...]
-      byModel, // [{ name: "Gemini Flash 1.5", count: 42 }, ...]
+      daily, 
+      byModel, 
     });
   } catch (err) {
     console.error("GET /api/stats error:", err);
