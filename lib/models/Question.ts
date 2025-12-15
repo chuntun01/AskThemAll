@@ -11,7 +11,7 @@ interface IQuestion extends Document {
 
 const QuestionSchema = new Schema<IQuestion>(
   {
-    userId: { type: String, default: null },
+    userId: { type: String, index: true, required: true },
     question: { type: String, required: true },
     answers: { type: [String], default: [] },
     threadId: { type: Schema.Types.ObjectId, index: true, default: null },

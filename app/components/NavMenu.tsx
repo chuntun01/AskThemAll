@@ -226,30 +226,41 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   }, [isMenuOpen, onClose]);
 
   // Fetch lịch sử khi mở menu
-  useEffect(() => {
-    if (!isMenuOpen) return;
-    let cancelled = false;
-    (async () => {
-      setLoadingHistory(true);
-      setHistErr(null);
-      try {
-        const res = await fetch("/api/chat-history", { cache: "no-store" });
-        if (!res.ok) throw new Error(await res.text());
-        const data: HistoryItem[] = await res.json();
-        if (!cancelled) setHistory(data);
-      } catch (e: unknown) {
-        if (!cancelled)
-          setHistErr(
-            e instanceof Error ? e.message : "Không tải được lịch sử"
-          );
-      } finally {
-        if (!cancelled) setLoadingHistory(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isMenuOpen]);
+ useEffect(() => {
+  if (!isMenuOpen) return;
+  if (!isLoaded) return;
+
+  // nếu chưa đăng nhập thì không fetch history
+  if (!isSignedIn) {
+    setHistory([]);
+    setHistErr("Bạn chưa đăng nhập!");
+    return;
+  }
+
+  let cancelled = false;
+  (async () => {
+    setLoadingHistory(true);
+    setHistErr(null);
+    try {
+      const res = await fetch("/api/chat-history", {
+        cache: "no-store",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data: HistoryItem[] = await res.json();
+      if (!cancelled) setHistory(data);
+    } catch (e: unknown) {
+      if (!cancelled)
+        setHistErr(e instanceof Error ? e.message : "Không tải được lịch sử");
+    } finally {
+      if (!cancelled) setLoadingHistory(false);
+    }
+  })();
+
+  return () => {
+    cancelled = true;
+  };
+}, [isMenuOpen, isLoaded, isSignedIn]);
 
   const handleOpenChat = async (threadId: string) => {
   try {
