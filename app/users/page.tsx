@@ -237,8 +237,8 @@ export default function UsersPage() {
                       {user.username}
                     </p>
                     <p style={{margin: 0, fontSize: "0.9rem"}}>
-                      <strong style={{color: "#000000"}}>User ID:</strong>{" "}
-                      {user.id}
+                      <strong style={{color: "#000000"}}>Email:</strong>{" "}
+                      <span style={{color: "#000000"}}>{user.email}</span>
                     </p>
                     <p style={{margin: 0, fontSize: "0.9rem"}}>
                       <strong style={{color: "#000000"}}>quyền:</strong>{" "}

@@ -9,15 +9,12 @@ import {NextResponse} from "next/server";
  * /api/questions/{questionId}/answers:
  *   post:
  *     tags: [Answers]
- *     summary: Tạo câu trả lời mới cho một câu hỏi
- *     description: Thêm câu trả lời cho câu hỏi có ID được cung cấp và cập nhật lại danh sách answers của câu hỏi đó.
  *     parameters:
  *       - in: path
  *         name: questionId
  *         required: true
  *         schema:
  *           type: string
- *         description: ID của câu hỏi cần trả lời
  *     requestBody:
  *       required: true
  *       content:
@@ -30,17 +27,9 @@ import {NextResponse} from "next/server";
  *             properties:
  *               content:
  *                 type: string
- *                 example: "Mình nghĩ SEO Onpage gồm các bước tối ưu title, meta description, heading, internal link..."
  *               userId:
  *                 type: string
- *                 example: "user_123456"
- *     responses:
- *       201:
- *         description: Tạo câu trả lời thành công
- *       400:
- *         description: Thiếu thông tin cần thiết
- *       500:
- *         description: Lỗi server
+ *                 
  */
 
 // [POST]: Thêm câu trả lời cho câu hỏi có ID là [questionId]
