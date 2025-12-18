@@ -52,12 +52,12 @@ export async function PATCH(
     await connectDB();
 
     const body = await request.json();
-    const {username, email, role} = body || {};
+    const {username, email, isAdmin} = body || {};
 
     const updateData: any = {};
     if (username !== undefined) updateData.username = username;
     if (email !== undefined) updateData.email = email;
-    if (role !== undefined) updateData.role = role;
+    if (isAdmin !== undefined) updateData.isAdmin = isAdmin;
 
     const updated = await User.findByIdAndUpdate(
       params.id,
@@ -74,8 +74,8 @@ export async function PATCH(
         id: updated._id.toString(),
         username: updated.username,
         email: updated.email,
-        isAdmin: updated.isAdmin,
         clerkId: updated.clerkId,
+        isAdmin: updated.isAdmin === Boolean(true),
       },
       {status: 200}
     );
