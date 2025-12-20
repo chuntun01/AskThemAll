@@ -120,10 +120,11 @@ function StatisticsClient() {
     <div className="min-h-screen bg-gray-50">
       <NavbarMenu
         isMenuOpen={false}
-        onMenuClick={() => {}}
-        onClose={() => {}}
-        historyItems={[]}
-      />
+        onMenuClick={() => { } }
+        onClose={() => { } }
+        historyItems={[]} onNewChat={function (): void {
+          throw new Error("Function not implemented.");
+        } }      />
 
       <div className="p-8">
         <h1 className="text-2xl font-bold mb-4">Thống kê hệ thống</h1>

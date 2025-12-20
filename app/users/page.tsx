@@ -27,7 +27,7 @@ export default function UsersPage() {
   const [modalInitial, setModalInitial] = useState<UserProfile | null>(null);
 
   const {isLoaded, isSignedIn} = useUser();
-
+  
   // Lấy dữ liệu
   const loadModels = async () => {
     try {
@@ -109,7 +109,9 @@ export default function UsersPage() {
         onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
         onClose={() => setIsMenuOpen(false)}
         historyItems={[]}
-      />
+        modelSelector={null} onNewChat={function (): void {
+          throw new Error("Function not implemented.");
+        } }      />
 
       <div
         style={{
@@ -237,8 +239,8 @@ export default function UsersPage() {
                       {user.username}
                     </p>
                     <p style={{margin: 0, fontSize: "0.9rem"}}>
-                      <strong style={{color: "#000000"}}>User ID:</strong>{" "}
-                      {user.id}
+                      <strong style={{color: "#000000"}}>Email:</strong>{" "}
+                      <span style={{color: "#000000"}}>{user.email}</span>
                     </p>
                     <p style={{margin: 0, fontSize: "0.9rem"}}>
                       <strong style={{color: "#000000"}}>quyền:</strong>{" "}
