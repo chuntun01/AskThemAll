@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useState} from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import type { Message as ChatMessage } from "@/lib/store/chat";
+import {usePathname, useRouter} from "next/navigation";
+import type {Message as ChatMessage} from "@/lib/store/chat";
 
 import {
   SignInButton,
@@ -14,14 +14,15 @@ import {
   UserButton,
   useUser,
 } from "@clerk/nextjs";
-import { useChatStore } from "@/lib/store/chat";
+import {useChatStore} from "@/lib/store/chat";
 
 interface NavbarMenuProps {
   isMenuOpen: boolean;
   onMenuClick: () => void;
   onClose: () => void;
-  historyItems: Array<{ name: string; href: string }>;
+  historyItems: Array<{name: string; href: string}>;
   modelSelector?: React.ReactNode; // ⬅ select model truyền từ page.tsx
+  onNewChat: () => void;
 }
 
 type HistoryItem = {
@@ -29,6 +30,7 @@ type HistoryItem = {
   name: string;
   href: string;
   updatedAt?: number;
+  ownerLabel?: string;
 };
 
 const formatTime = (ms?: number) => {
@@ -40,11 +42,11 @@ const formatTime = (ms?: number) => {
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
   return sameDay
-    ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    ? d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})
     : d.toLocaleDateString();
 };
 
-function Backdrop({ onClose }: { onClose: () => void }) {
+function Backdrop({onClose}: {onClose: () => void}) {
   return (
     <div
       className="fixed inset-0 bg-black/40 z-[999]"
@@ -90,12 +92,13 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   onClose,
   historyItems: _ignored,
   modelSelector,
+  onNewChat,
 }) => {
   const [userRole, setUserRole] = useState<string | null>(null); // "admin" | "member" | null
   const [roleError, setRoleError] = useState<string | null>(null);
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
-  const { isLoaded, isSignedIn, user } = useUser();
+  const {isLoaded, isSignedIn, user} = useUser();
 
   // fetch role từ DB
   useEffect(() => {
@@ -159,7 +162,8 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   const onUsers = pathname?.startsWith("/users");
   const onAIModels = pathname?.startsWith("/aiModels");
 
-  const { setMessages, setCurrentThreadId, clearMessages } = useChatStore();
+  const {clearMessages, loadConversation, listConversations, currentThreadId} =
+    useChatStore();
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -226,67 +230,76 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
   }, [isMenuOpen, onClose]);
 
   // Fetch lịch sử khi mở menu
- useEffect(() => {
-  if (!isMenuOpen) return;
-  if (!isLoaded) return;
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    if (!isLoaded) return;
 
-  // nếu chưa đăng nhập thì không fetch history
-  if (!isSignedIn) {
-    setHistory([]);
-    setHistErr("Bạn chưa đăng nhập!");
-    return;
-  }
-
-  let cancelled = false;
-  (async () => {
-    setLoadingHistory(true);
-    setHistErr(null);
-    try {
-      const res = await fetch("/api/chat-history", {
-        cache: "no-store",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data: HistoryItem[] = await res.json();
-      if (!cancelled) setHistory(data);
-    } catch (e: unknown) {
-      if (!cancelled)
-        setHistErr(e instanceof Error ? e.message : "Không tải được lịch sử");
-    } finally {
-      if (!cancelled) setLoadingHistory(false);
+    if (!isSignedIn) {
+      setHistory([]);
+      setHistErr("Bạn chưa đăng nhập!");
+      return;
     }
-  })();
 
-  return () => {
-    cancelled = true;
-  };
-}, [isMenuOpen, isLoaded, isSignedIn]);
+    let cancelled = false;
+
+    (async () => {
+      setLoadingHistory(true);
+      setHistErr(null);
+      try {
+        const items = await listConversations();
+        if (cancelled) return;
+
+        setHistory(
+          items.map((c) => {
+            const ownerLabel = c.ownerName
+              ? c.ownerEmail
+                ? `${c.ownerName} • ${c.ownerEmail}`
+                : c.ownerName
+              : c.ownerEmail
+              ? c.ownerEmail
+              : c.ownerUserId ?? "";
+
+            return {
+              id: c.id,
+              name: c.title,
+              href: "/",
+              updatedAt: c.lastMessageAt
+                ? new Date(c.lastMessageAt).getTime()
+                : undefined,
+              ownerLabel, 
+            };
+          })
+        );
+      } catch (e: unknown) {
+        if (!cancelled)
+          setHistErr(e instanceof Error ? e.message : "Không tải được lịch sử");
+      } finally {
+        if (!cancelled) setLoadingHistory(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isMenuOpen, isLoaded, isSignedIn, listConversations, isAdmin]);
 
   const handleOpenChat = async (threadId: string) => {
-  try {
-    const res = await fetch(`/api/chat-history/${threadId}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) throw new Error(await res.text());
+    try {
+      await loadConversation(threadId);
 
-    const data: { id: string; messages: ChatMessage[] } = await res.json();
-
-    setMessages(Array.isArray(data.messages) ? data.messages : []);
-    setCurrentThreadId(data.id);
-
-    onClose();
-    if (pathname !== "/") router.push("/");
-  } catch (e: unknown) {
-    if (e instanceof Error) {
-      setHistErr(e.message);
-    } else {
-      setHistErr("Không mở được đoạn chat này.");
+      onClose();
+      if (pathname !== "/") router.push("/");
+    } catch (e: unknown) {
+      setHistErr(
+        e instanceof Error ? e.message : "Không mở được đoạn chat này."
+      );
     }
-  }
-};
+  };
 
   const handleNewChat = () => {
-    clearMessages();
+    if (onNewChat) onNewChat();
+    else clearMessages(); // fallback
+
     onClose();
     if (pathname !== "/") router.push("/");
   };
@@ -308,16 +321,76 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
       setRenameItem(null);
       return;
     }
-    setHistory((h) =>
-      h.map((x) => (x.id === renameItem.id ? { ...x, name } : x))
-    );
+
+    const target = renameItem; // giữ reference để dùng sau khi setRenameItem(null)
     setRenameItem(null);
+
+    // optimistic UI
+    setHistory((h) => h.map((x) => (x.id === target.id ? {...x, name} : x)));
+
+    try {
+      const res = await fetch(`/api/conversations/${target.id}`, {
+        method: "PATCH",
+        headers: {"Content-Type": "application/json"},
+        credentials: "include",
+        cache: "no-store",
+        body: JSON.stringify({title: name}),
+      });
+
+      if (!res.ok) {
+        let msg = `Đổi tên thất bại (HTTP ${res.status})`;
+        try {
+          const e = await res.json();
+          msg = e?.message ?? msg;
+        } catch {}
+        throw new Error(msg);
+      }
+
+      // nếu muốn chắc chắn đồng bộ tuyệt đối, bạn có thể refetch list ở đây
+    } catch (e: unknown) {
+      setHistErr(e instanceof Error ? e.message : "Đổi tên thất bại");
+
+      // rollback UI (đưa lại tên cũ)
+      setHistory((h) =>
+        h.map((x) => (x.id === target.id ? {...x, name: target.name} : x))
+      );
+    }
   };
 
   const submitDelete = async () => {
     if (!confirmDel) return;
-    setHistory((h) => h.filter((x) => x.id !== confirmDel.id));
+
+    const deletingId = confirmDel.id;
+
+    // Optimistic UI (tuỳ bạn): remove trước
+    setHistory((h) => h.filter((x) => x.id !== deletingId));
     setConfirmDel(null);
+
+    try {
+      const res = await fetch(`/api/conversations/${deletingId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        // rollback nếu muốn (tuỳ): fetch lại list, hoặc insert item lại
+        let msg = "Xoá thất bại";
+        try {
+          const e = await res.json();
+          msg = e?.message ?? msg;
+        } catch {}
+        throw new Error(msg);
+      }
+
+      // Nếu đang mở đúng thread bị xoá => reset UI chat
+      if (currentThreadId === deletingId) {
+        clearMessages();
+      }
+    } catch (e: unknown) {
+      setHistErr(e instanceof Error ? e.message : "Xoá thất bại");
+      // rollback đơn giản: refetch history (khuyến nghị)
+      // hoặc bạn có thể đưa item trở lại history
+    }
   };
 
   return (
@@ -438,7 +511,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
         <div className="mb-6">
           <h2 className="text-2xl font-bold mb-4">
             Chức năng{" "}
-            <span style={{ color: "#0070f3", fontSize: "1rem" }}>
+            <span style={{color: "#0070f3", fontSize: "1rem"}}>
               ({userRole || "loading..."})
             </span>
           </h2>
@@ -449,7 +522,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
                   <Link
                     href="/statistics"
                     onClick={onClose}
-                    className="block no-underline hover:underline transition focus:outline-none focus:ring-2 focus:ring-black/10 rounded-sm"
+                    className="block no-underline font-bold hover:underline transition focus:outline-none focus:ring-2 focus:ring-black/10 rounded-sm"
                   >
                     Thống kê
                   </Link>
@@ -478,7 +551,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
             <li>
               <button
                 onClick={handleNewChat}
-                className="w-full text-left block hover:underline underline-offset-4 transition"
+                className="w-full text-left block hover:underline font-bold underline-offset-4 transition"
               >
                 Đoạn chat mới
               </button>
@@ -493,7 +566,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
           </h2>
           {loadingHistory ? (
             <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
+              {Array.from({length: 5}).map((_, i) => (
                 <div
                   key={i}
                   className="h-14 rounded-2xl bg-white/30 backdrop-blur-sm"
@@ -501,10 +574,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
               ))}
             </div>
           ) : histErr ? (
-            <div className="text-sm text-red-700">
-              bạn chưa đăng nhập!
-              <p>{histErr}</p>
-            </div>
+            <div className="text-sm text-red-700">{histErr}</div>
           ) : history.length === 0 ? (
             <div className="text-sm text-[var(--muted)]">Chưa có lịch sử</div>
           ) : (
@@ -529,6 +599,9 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
                       </p>
                       <span className="text-xs text-[var(--muted)]">
                         {formatTime(item.updatedAt)}
+                        {isAdmin && item.ownerLabel
+                          ? ` • ${item.ownerLabel}`
+                          : ""}
                       </span>
                     </button>
 
