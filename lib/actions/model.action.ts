@@ -74,4 +74,5 @@ export async function deleteAIModel(id: string): Promise<void> {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || "Không thể xoá model.");
   }
+  return res.json();
 }
