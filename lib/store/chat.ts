@@ -1,69 +1,69 @@
-  // // src/lib/store/chat.ts
-  // import { create } from "zustand";
-  // import { persist } from "zustand/middleware";
+// // src/lib/store/chat.ts
+// import { create } from "zustand";
+// import { persist } from "zustand/middleware";
 
-  // export interface Message {
-  //   id: string;
-  //   role: "user" | "assistant";
-  //   content: string;
-  //   modelId?: string;
-  // }
+// export interface Message {
+//   id: string;
+//   role: "user" | "assistant";
+//   content: string;
+//   modelId?: string;
+// }
 
-  // interface ChatStore {
-  //   // state
-  //   messages: Message[];
-  //   selectedModelIds: string[];
-  //   currentThreadId: string | null;
+// interface ChatStore {
+//   // state
+//   messages: Message[];
+//   selectedModelIds: string[];
+//   currentThreadId: string | null;
 
-  //   // actions
-  //   setMessages: (v: Message[] | ((prev: Message[]) => Message[])) => void;
-  //   addMessage: (m: Message) => void;
-  //   clearMessages: () => void;
-  //   setSelectedModelIds: (ids: string[]) => void;
-  //   setCurrentThreadId: (id: string | null) => void;
-  // }
+//   // actions
+//   setMessages: (v: Message[] | ((prev: Message[]) => Message[])) => void;
+//   addMessage: (m: Message) => void;
+//   clearMessages: () => void;
+//   setSelectedModelIds: (ids: string[]) => void;
+//   setCurrentThreadId: (id: string | null) => void;
+// }
 
-  // export const useChatStore = create<ChatStore>()(
-  //   persist(
-  //     (set) => ({
-  //       messages: [],
-  //       selectedModelIds: [],
-  //       currentThreadId: null,
+// export const useChatStore = create<ChatStore>()(
+//   persist(
+//     (set) => ({
+//       messages: [],
+//       selectedModelIds: [],
+//       currentThreadId: null,
 
-  //       // Cho phép truyền MẢNG hoặc HÀM updater(prev)=>newArray
-  //       setMessages: (v) =>
-  //         set((s) => ({
-  //           messages:
-  //             typeof v === "function"
-  //               ? (v as (p: Message[]) => Message[])(s.messages)
-  //               : v,
-  //         })),
+//       // Cho phép truyền MẢNG hoặc HÀM updater(prev)=>newArray
+//       setMessages: (v) =>
+//         set((s) => ({
+//           messages:
+//             typeof v === "function"
+//               ? (v as (p: Message[]) => Message[])(s.messages)
+//               : v,
+//         })),
 
-  //       addMessage: (m) => set((s) => ({ messages: [...s.messages, m] })),
+//       addMessage: (m) => set((s) => ({ messages: [...s.messages, m] })),
 
-  //       // Bắt đầu chat mới => xoá msg + reset thread
-  //       clearMessages: () => set({ messages: [], currentThreadId: null }),
+//       // Bắt đầu chat mới => xoá msg + reset thread
+//       clearMessages: () => set({ messages: [], currentThreadId: null }),
 
-  //       setSelectedModelIds: (ids) =>
-  //         set({ selectedModelIds: Array.from(new Set(ids)) }),
+//       setSelectedModelIds: (ids) =>
+//         set({ selectedModelIds: Array.from(new Set(ids)) }),
 
-  //       setCurrentThreadId: (id) => set({ currentThreadId: id }),
-  //     }),
-  //     {
-  //       name: "chat-store-v1",
-  //       partialize: (s) => ({
-  //         messages: s.messages,
-  //         selectedModelIds: s.selectedModelIds,
-  //         currentThreadId: s.currentThreadId,
-  //       }),
-  //     }
-  //   )
-  // );
+//       setCurrentThreadId: (id) => set({ currentThreadId: id }),
+//     }),
+//     {
+//       name: "chat-store-v1",
+//       partialize: (s) => ({
+//         messages: s.messages,
+//         selectedModelIds: s.selectedModelIds,
+//         currentThreadId: s.currentThreadId,
+//       }),
+//     }
+//   )
+// );
 //-------------------------------=
 
 // src/lib/store/chat.ts
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import {create} from "zustand";
+import {persist} from "zustand/middleware";
 
 export interface Message {
   id: string;
@@ -77,6 +77,9 @@ export interface ConversationListItem {
   id: string;
   title: string;
   lastMessageAt: string;
+  ownerUserId?: string;
+  ownerName?: string | null;
+  ownerEmail?: string | null;
 }
 
 interface ChatStore {
@@ -108,34 +111,39 @@ export const useChatStore = create<ChatStore>()(
       isLoading: false,
       error: null,
 
-      clearMessages: () => set({ messages: [], currentThreadId: null, error: null }),
+      clearMessages: () =>
+        set({messages: [], currentThreadId: null, error: null}),
 
-      setSelectedModelIds: (ids) => set({ selectedModelIds: Array.from(new Set(ids)) }),
+      setSelectedModelIds: (ids) =>
+        set({selectedModelIds: Array.from(new Set(ids))}),
 
-      setCurrentThreadId: (id) => set({ currentThreadId: id }),
+      setCurrentThreadId: (id) => set({currentThreadId: id}),
 
       sendQuestion: async (question) => {
         const q = question.trim();
         if (!q) return;
 
-        const { selectedModelIds, currentThreadId } = get();
+        const {selectedModelIds, currentThreadId} = get();
         if (!selectedModelIds || selectedModelIds.length === 0) {
-          set({ error: "Bạn chưa chọn model.", isLoading: false });
+          set({error: "Bạn chưa chọn model.", isLoading: false});
           return;
         }
 
-        set({ isLoading: true, error: null });
+        set({isLoading: true, error: null});
 
         // optimistic user message
         const tempUserId = crypto.randomUUID();
         set({
-          messages: [...get().messages, { id: tempUserId, role: "user", content: q }],
+          messages: [
+            ...get().messages,
+            {id: tempUserId, role: "user", content: q},
+          ],
         });
 
         try {
           const res = await fetch("/api/chat", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
               question: q,
               modelIds: selectedModelIds,
@@ -151,27 +159,29 @@ export const useChatStore = create<ChatStore>()(
           const data = await res.json();
           const newThreadId: string = data.threadId;
 
-          const assistantMessages: Message[] = (data.assistant ?? []).map((a: any) => ({
-            id: a.messageId ?? crypto.randomUUID(),
-            role: "assistant",
-            content: a.content ?? "",
-            modelId: a.modelId,
-            error: a.error ?? null,
-          }));
+          const assistantMessages: Message[] = (data.assistant ?? []).map(
+            (a: any) => ({
+              id: a.messageId ?? crypto.randomUUID(),
+              role: "assistant",
+              content: a.content ?? "",
+              modelId: a.modelId,
+              error: a.error ?? null,
+            })
+          );
 
           set({
             currentThreadId: newThreadId,
             messages: [...get().messages, ...assistantMessages],
           });
         } catch (e: any) {
-          set({ error: e?.message ?? String(e) });
+          set({error: e?.message ?? String(e)});
         } finally {
-          set({ isLoading: false });
+          set({isLoading: false});
         }
       },
 
       loadConversation: async (threadId) => {
-        set({ isLoading: true, error: null });
+        set({isLoading: true, error: null});
         try {
           const res = await fetch(`/api/conversations/${threadId}`);
           if (!res.ok) {
@@ -194,9 +204,9 @@ export const useChatStore = create<ChatStore>()(
             messages,
           });
         } catch (e: any) {
-          set({ error: e?.message ?? String(e) });
+          set({error: e?.message ?? String(e)});
         } finally {
-          set({ isLoading: false });
+          set({isLoading: false});
         }
       },
 
@@ -208,6 +218,9 @@ export const useChatStore = create<ChatStore>()(
           id: c.id,
           title: c.title,
           lastMessageAt: c.lastMessageAt,
+          ownerUserId: c.ownerUserId,
+          ownerName: c.ownerName ?? null,
+          ownerEmail: c.ownerEmail ?? null,
         }));
       },
     }),
