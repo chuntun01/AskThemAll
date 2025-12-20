@@ -5,6 +5,7 @@ import connectDB from "@/lib/db";
 import Conversation from "@/lib/models/Conversation";
 import ConversationMessage from "@/lib/models/ConversationMessage";
 import {askOpenRouterChat} from "@/lib/services/aiService";
+import User from "@/lib/models/User";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +19,18 @@ const HISTORY_LIMIT = 40; // số message gần nhất cho mỗi model
 export async function POST(req: NextRequest) {
   const {userId} = await auth();
   const effectiveUserId = userId ?? "guest";
-  //   if (!userId)
-  //     return NextResponse.json({message: "Unauthorized"}, {status: 401});
+    if (!userId)
+      return NextResponse.json({message: "Unauthorized"}, {status: 401});
 
   await connectDB();
+
+  const exists = await User.exists({clerkId: userId});
+  if (!exists) {
+    return NextResponse.json(
+      {message: "Account does not exist or has been deleted."},
+      {status: 403}
+    );
+  }
 
   const body = await req.json().catch(() => ({}));
   const question = String(body?.question ?? "").trim();

@@ -30,6 +30,7 @@ type HistoryItem = {
   name: string;
   href: string;
   updatedAt?: number;
+  ownerLabel?: string;
 };
 
 const formatTime = (ms?: number) => {
@@ -249,14 +250,25 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
         if (cancelled) return;
 
         setHistory(
-          items.map((c) => ({
-            id: c.id,
-            name: c.title,
-            href: "/",
-            updatedAt: c.lastMessageAt
-              ? new Date(c.lastMessageAt).getTime()
-              : undefined,
-          }))
+          items.map((c) => {
+            const ownerLabel = c.ownerName
+              ? c.ownerEmail
+                ? `${c.ownerName} • ${c.ownerEmail}`
+                : c.ownerName
+              : c.ownerEmail
+              ? c.ownerEmail
+              : c.ownerUserId ?? "";
+
+            return {
+              id: c.id,
+              name: c.title,
+              href: "/",
+              updatedAt: c.lastMessageAt
+                ? new Date(c.lastMessageAt).getTime()
+                : undefined,
+              ownerLabel, 
+            };
+          })
         );
       } catch (e: unknown) {
         if (!cancelled)
@@ -269,7 +281,7 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [isMenuOpen, isLoaded, isSignedIn, listConversations]);
+  }, [isMenuOpen, isLoaded, isSignedIn, listConversations, isAdmin]);
 
   const handleOpenChat = async (threadId: string) => {
     try {
@@ -587,6 +599,9 @@ const NavbarMenu: React.FC<NavbarMenuProps> = ({
                       </p>
                       <span className="text-xs text-[var(--muted)]">
                         {formatTime(item.updatedAt)}
+                        {isAdmin && item.ownerLabel
+                          ? ` • ${item.ownerLabel}`
+                          : ""}
                       </span>
                     </button>
 
