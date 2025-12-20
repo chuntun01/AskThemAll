@@ -111,8 +111,9 @@ export default function AimodelsPage() {
         isMenuOpen={isMenuOpen}
         onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
         onClose={() => setIsMenuOpen(false)}
-        historyItems={[]}
-      />
+        historyItems={[]} onNewChat={function (): void {
+          throw new Error("Function not implemented.");
+        } }      />
 
       <div
         style={{

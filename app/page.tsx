@@ -1,40 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import ModelSelector from "./components/ModelSelector";
 import NavbarMenu from "./components/NavMenu";
-import { useChatStore } from "@/lib/store/chat";
-import type { Message } from "@/lib/store/chat";
-import { AIModel } from "@/types/AIModel";
+import {useChatStore} from "@/lib/store/chat";
+import type {Message} from "@/lib/store/chat";
+import {AIModel} from "@/types/AIModel";
 import GradientStyles from "./components/GradientStyles";
 import ChatSection from "./components/ChatSection";
 
-function normalizeAnswersToMessages(raw: any): Message[] {
-  const answers = Array.isArray(raw?.answers) ? raw.answers : [];
-  return answers.map((ans: any) => {
-    const id = ans?._id || crypto.randomUUID();
-    const content =
-      typeof ans?.content === "string" && ans.content.trim()
-        ? ans.content
-        : "(không có nội dung)";
-
-    let modelId: string | undefined;
-    const a = ans?.authorModel;
-    if (typeof a === "string") modelId = a;
-    else if (a && typeof a === "object") {
-      if (typeof a.modelId === "string") modelId = a.modelId;
-      else if (typeof a._id === "string") modelId = a._id;
-      else if (
-        a._id &&
-        typeof a._id === "object" &&
-        typeof a._id.toString === "function"
-      ) {
-        modelId = a._id.toString();
-      }
-    }
-
-    return { id, isAdmin: false, content, modelId };
-  });
+function normalizeChatResultToMessages(raw: any): Message[] {
+  const assistant = Array.isArray(raw?.assistant) ? raw.assistant : [];
+  return assistant.map((a: any) => ({
+    id: a?.messageId || crypto.randomUUID(),
+    role: "assistant",
+    content:
+      typeof a?.content === "string" && a.content.trim()
+        ? a.content
+        : "(không có nội dung)",
+    modelId: a?.modelId,
+    error: a?.error ?? null,
+  }));
 }
 
 export default function Home() {
@@ -46,13 +32,19 @@ export default function Home() {
 
   const {
     messages,
-    setMessages,
-    addMessage,
     selectedModelIds,
     setSelectedModelIds,
     currentThreadId,
     setCurrentThreadId,
+    clearMessages,
   } = useChatStore();
+
+  const handleNewChat = () => {
+    clearMessages(); // reset messages + currentThreadId
+    setQuestion(""); // reset input
+    setError(null); // reset local error
+    setIsLoading(false); // reset local loading
+  };
 
   const listEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -81,7 +73,7 @@ export default function Home() {
 
   // auto scroll
   useEffect(() => {
-    listEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    listEndRef.current?.scrollIntoView({behavior: "smooth"});
   }, [messages, isLoading]);
 
   // load models 1 lần
@@ -117,6 +109,7 @@ export default function Home() {
       setError("Vui lòng chọn ít nhất một AI model để hỏi.");
       return;
     }
+
     const q = question.trim();
     if (!q) {
       setError("Vui lòng nhập câu hỏi.");
@@ -125,21 +118,26 @@ export default function Home() {
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
-      role: "assistant", 
+      role: "user",
       content: q,
     };
-    addMessage(userMsg);
+
+    // ✅ 1) Append user message dựa trên state mới nhất
+    useChatStore.setState((state) => ({
+      messages: [...state.messages, userMsg],
+    }));
+
     setQuestion("");
     setIsLoading(true);
     setError(null);
 
     try {
-      const res = await fetch("/api/questions", {
+      const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           question: q,
-          selectedModelIds,
+          modelIds: selectedModelIds, // đúng field backend đọc
           threadId: currentThreadId,
         }),
       });
@@ -158,19 +156,34 @@ export default function Home() {
         setCurrentThreadId(result.threadId);
       }
 
-      const assistantMsgs = normalizeAnswersToMessages(result);
+      const assistantMsgs: Message[] = Array.isArray(result?.assistant)
+        ? result.assistant.map((a: any) => ({
+            id: a?.messageId || crypto.randomUUID(),
+            role: "assistant",
+            content:
+              typeof a?.content === "string" && a.content.trim()
+                ? a.content
+                : "(không có nội dung)",
+            modelId: a?.modelId,
+            error: a?.error ?? null,
+          }))
+        : [];
 
-      setMessages((prev) => [
-        ...prev,
-        ...(assistantMsgs.length
-          ? assistantMsgs
-          : [
-              {
-                id: crypto.randomUUID(),
-                content: "Mình chưa nhận được trả lời từ server.",
-              } as Message,
-            ]),
-      ]);
+      // ✅ 2) Append assistant messages dựa trên state mới nhất (không ghi đè)
+      useChatStore.setState((state) => ({
+        messages: [
+          ...state.messages,
+          ...(assistantMsgs.length
+            ? assistantMsgs
+            : [
+                {
+                  id: crypto.randomUUID(),
+                  role: "assistant",
+                  content: "Mình chưa nhận được trả lời từ server.",
+                } as Message,
+              ]),
+        ],
+      }));
     } catch (error: unknown) {
       const message =
         error instanceof Error
@@ -194,6 +207,7 @@ export default function Home() {
           onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
           onClose={() => setIsMenuOpen(false)}
           historyItems={[]}
+          onNewChat={handleNewChat}
           modelSelector={
             <ModelSelector
               availableModels={availableModels}
