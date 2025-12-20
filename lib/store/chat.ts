@@ -162,7 +162,7 @@ export const useChatStore = create<ChatStore>()(
           const assistantMessages: Message[] = (data.assistant ?? []).map(
             (a: any) => ({
               id: a.messageId ?? crypto.randomUUID(),
-              role: "assistant",
+              role: "user",
               content: a.content ?? "",
               modelId: a.modelId,
               error: a.error ?? null,
